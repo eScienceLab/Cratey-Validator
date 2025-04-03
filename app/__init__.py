@@ -7,6 +7,7 @@
 import os
 
 from flask import Flask
+from flask_restx import Api
 
 from app.celery_worker import make_celery, celery
 from app.ro_crates.routes import ro_crates_bp
@@ -20,6 +21,7 @@ def create_app() -> Flask:
     :return: Flask: A configured Flask application instance.
     """
     app = Flask(__name__)
+    api = Api(app, version='0.0.1', title='flaskey', description='breaking everything')
     app.register_blueprint(ro_crates_bp, url_prefix="/ro_crates")
 
     # Load configuration:
