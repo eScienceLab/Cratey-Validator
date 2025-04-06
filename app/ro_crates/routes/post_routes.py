@@ -4,11 +4,12 @@
 # License: MIT
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
-from flask import Blueprint, request, Response
+from apiflask import APIBlueprint
+from flask import request, Response
 
 from app.services.validation_service import queue_ro_crate_validation_task
 
-post_routes_bp = Blueprint("post_routes", __name__)
+post_routes_bp = APIBlueprint("post_routes", __name__)
 
 
 @post_routes_bp.route("/validate_by_id", methods=["POST"])
