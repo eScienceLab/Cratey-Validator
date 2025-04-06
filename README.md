@@ -41,3 +41,9 @@ app/
    docker compose build
    docker compose up
    ```
+
+## Example Usage
+
+```
+curl -X POST http://localhost:5001/ro_crates/post/validate_by_id_no_webhook -d "id=1"
+```
