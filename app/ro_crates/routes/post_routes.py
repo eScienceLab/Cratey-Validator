@@ -4,52 +4,69 @@
 # License: MIT
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
-from apiflask import APIBlueprint
+from apiflask import APIBlueprint, Schema
+from apiflask.fields import Integer, String
 from flask import request, Response
 
 from app.services.validation_service import queue_ro_crate_validation_task
 
 post_routes_bp = APIBlueprint("post_routes", __name__)
 
+class validate_data(Schema):
+    crate_id = String(required=True)
+    profile_name = String(required=False)
+    webhook_url = String(required=False)
 
-@post_routes_bp.route("/validate_by_id", methods=["POST"])
-def validate_ro_crate_from_id() -> tuple[Response, int]:
+
+@post_routes_bp.post("/validate_by_id")
+@post_routes_bp.input(validate_data(partial=True), location='json')
+def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO. Requires webhook_url.
 
-    :param id: The ID of the RO-Crate to validate. Required.
+    :param crate_id: The ID of the RO-Crate to validate. Required.
     :param profile_name: The profile name for validation. Optional.
     :param webhook_url: The webhook URL where validation results will be sent. Required.
     :return: A tuple containing the validation task's response and an HTTP status code.
-    :raises: KeyError: If required parameters (`id` or `webhook_url`) are missing.
+    :raises: KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
-    crate_id = request.form.get("id")
-    profile_name = request.form.get("profile_name")
-    webhook_url = request.form.get("webhook_url")
+    try:
+        crate_id = json_data["crate_id"]
+    except:
+        raise KeyError("Missing required parameter: 'crate_id'")
+    try:
+        webhook_url = json_data["webhook_url"]
+    except:
+       raise KeyError("Missing required parameter: 'webhook_url'")
 
-    if not crate_id:
-        raise KeyError("Missing required parameter: 'id'")
-    if not webhook_url:
-        raise KeyError("Missing required parameter: 'webhook_url'")
+    try:
+        profile_name = json_data["profile_name"]
+    except:
+        profile_name = None
 
     return queue_ro_crate_validation_task(crate_id, profile_name, webhook_url)
 
-
-@post_routes_bp.route("/validate_by_id_no_webhook", methods=["POST"])
-def validate_ro_crate_from_id_no_webhook() -> tuple[Response, int]:
+@post_routes_bp.post("/validate_by_id_no_webhook")
+@post_routes_bp.input(validate_data(partial=True), location='json') # -> json_data
+def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO. Does not require webhook_url.
 
-    :param id: The ID of the RO-Crate to validate. Required.
+    :param crate_id: The ID of the RO-Crate to validate. Required.
     :param profile_name: The profile name for validation. Optional.
     :return: A tuple containing the validation task's response and an HTTP status code.
-    :raises: KeyError: If required parameters (`id` or `webhook_url`) are missing.
+    :raises: KeyError: If required parameters (`crate_id`) are missing.
     """
-    crate_id = request.form.get("id")
-    profile_name = request.form.get("profile_name")
 
-    if not crate_id:
+    try:
+        crate_id = json_data['crate_id']
+    except:
         raise KeyError("Missing required parameter: 'id'")
+
+    try:
+        profile_name = json_data['profile_name']
+    except:
+        profile_name = None
 
     return queue_ro_crate_validation_task(crate_id, profile_name)
