@@ -22,13 +22,18 @@ class validate_data(Schema):
 @post_routes_bp.input(validate_data(partial=True), location='json')
 def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     """
-    Endpoint to validate an RO-Crate using its ID from MinIO. Requires webhook_url.
+    Endpoint to validate an RO-Crate using its ID from MinIO.
 
-    :param crate_id: The ID of the RO-Crate to validate. Required.
-    :param profile_name: The profile name for validation. Optional.
-    :param webhook_url: The webhook URL where validation results will be sent. Required.
-    :return: A tuple containing the validation task's response and an HTTP status code.
-    :raises: KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
+    Parameters:
+    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
+    - **profile_name**: The profile name for validation. _Optional_.
+    - **webhook_url**: The webhook URL where validation results will be sent. _Required_.
+
+    Returns:
+    - A tuple containing the validation task's response and an HTTP status code.
+
+    Raises:
+    - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
     try:
@@ -38,7 +43,7 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     try:
         webhook_url = json_data["webhook_url"]
     except:
-       raise KeyError("Missing required parameter: 'webhook_url'")
+        raise KeyError("Missing required parameter: 'webhook_url'")
 
     try:
         profile_name = json_data["profile_name"]
@@ -51,12 +56,17 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
 @post_routes_bp.input(validate_data(partial=True), location='json') # -> json_data
 def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
     """
-    Endpoint to validate an RO-Crate using its ID from MinIO. Does not require webhook_url.
+    Endpoint to validate an RO-Crate using its ID from MinIO.
 
-    :param crate_id: The ID of the RO-Crate to validate. Required.
-    :param profile_name: The profile name for validation. Optional.
-    :return: A tuple containing the validation task's response and an HTTP status code.
-    :raises: KeyError: If required parameters (`crate_id`) are missing.
+    Parameters:
+    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
+    - **profile_name**: The profile name for validation. _Optional_.
+
+    Returns:
+    - A tuple containing the validation task's response and an HTTP status code.
+
+    Raises:
+    - KeyError: If required parameters (`crate_id`) are missing.
     """
 
     try:
