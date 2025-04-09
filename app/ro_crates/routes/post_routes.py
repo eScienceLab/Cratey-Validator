@@ -24,16 +24,19 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
 
-    Parameters:
-    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
-    - **profile_name**: The profile name for validation. _Optional_.
-    - **webhook_url**: The webhook URL where validation results will be sent. _Required_.
+    Args:
+      crate_id:
+        The ID of the RO-Crate to validate. _Required_.
+      profile_name:
+        The profile name for validation. _Optional_.
+      webhook_url:
+        The webhook URL where validation results will be sent. _Required_.
 
     Returns:
-    - A tuple containing the validation task's response and an HTTP status code.
+      A tuple containing the validation task's response and an HTTP status code.
 
     Raises:
-    - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
+      KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
     try:
