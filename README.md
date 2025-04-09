@@ -42,6 +42,22 @@ app/
    docker compose up
    ```
 
+3. Set up the MinIO bucket
+   1. Open the MinIO web interface at `http://localhost:9000`.  
+   2. Log in with your MinIO credentials.  
+   3. Create a new bucket named `ro-crates`.  
+   4. **Enable versioning** for the `ro-crates` bucket — this is important for tracking unique object versions.
+
+      ![Ensure MinIO versioning is enabled](docs/assets/minio-versioning-enabled.webp "Ensure MinIO versioning is enabled")
+
+   5. Upload your RO-Crate files to the `ro-crates` bucket.  
+   6. To verify that versioning is enabled:
+      - Select the uploaded RO-Crate object in the `ro-crates` bucket.
+      - Navigate to the **Actions** panel on the right.
+      - The **Display Object Versions** option should be clickable.
+
+      ![Validate MinIO versioning is enabled](docs/assets/validate-minio-versioning-enabled.webp "Validate MinIO versioning is enabled")
+
 ## Example Usage
 
 ```
