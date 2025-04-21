@@ -106,6 +106,52 @@ def update_validation_status_in_minio(crate_id: str, validation_status: str) -> 
         raise
 
 
+def get_validation_status_from_minio(crate_id: str) -> dict | str:
+    """
+    Checks for the existence of a validation report for the given RO-Crate in the MinIO bucket.
+    Returns validation message if it exists, or notification that it is missing if not.
+
+    :param crate_id: The ID of the RO-Crate in MinIO
+    :return validation_status: Either the validation status, or note that this does not exist
+    :raises S3Error: If an error occurs during the MinIO operation
+    :raises ValueError: If the required environment variables are not set
+    :raises Exception: If an unexpected error occurs
+
+    """
+
+    try:
+        minio_client, bucket_name = get_minio_client_and_bucket()
+
+        # The object in MinIO is <crate_id>/validation_status.txt
+        object_name = f"{crate_id}/validation_status.txt"
+
+        logging.info(f"Getting object {object_name}")
+
+        response = minio_client.get_object(
+            bucket_name,
+            object_name,
+        )
+
+        validation_message = json.loads(response.data.decode())
+        response.close()
+        response.release_conn()
+
+    except S3Error as s3_error:
+        logging.error(f"MinIO S3 Error: {s3_error}")
+        raise
+
+    except ValueError as value_error:
+        logging.error(f"Configuration Error: {value_error}")
+        raise
+
+    except Exception as e:
+        logging.error(f"Unexpected error retrieving validation status from MinIO: {e}")
+        raise
+
+    else:
+        return validation_message
+
+
 def get_minio_client_and_bucket() -> [Minio, str]:
     """
     Initialises the MinIO client and retrieves the bucket name from environment variables.
