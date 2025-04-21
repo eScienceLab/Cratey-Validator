@@ -36,6 +36,8 @@ app/
    cd crate-validation-service
    ```
 
+2. Create the `.env` file for shared environment information. An example environment file is included (`example.env`), which can be copied for this purpose. But make sure to change any security settings (username and passwords).
+
 2. Build and start the services using Docker Compose:
     ```bash
    docker compose build
