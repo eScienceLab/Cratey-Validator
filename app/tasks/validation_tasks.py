@@ -14,6 +14,7 @@ from app.celery_worker import celery
 from app.utils.minio_utils import (
     fetch_ro_crate_from_minio,
     update_validation_status_in_minio,
+    get_validation_status_from_minio
 )
 from app.utils.webhook_utils import send_webhook_notification
 
@@ -110,4 +111,25 @@ def perform_ro_crate_validation(
 
     except Exception as e:
         logging.error(f"Unexpected error during validation: {e}")
+        return str(e)
+
+
+def return_ro_crate_validation(
+    crate_id: str,
+) -> dict | str:
+    """
+    Retrieves the validation result for an RO-Crate using the provided Crate ID.
+
+    :param crate_id: The ID of the RO-Crate that has been validated
+    :return: The validation result
+    :raises Exception: If an error occurs in the retrieving the validation result
+    """
+
+    try:
+        logging.info(f"Fetching validation result for RO-Crate {crate_id}")
+
+        return get_validation_status_from_minio(crate_id)
+
+    except Exception as e:
+        logging.error(f"Unexpected error when retrieving validation: {e}")
         return str(e)
