@@ -9,7 +9,7 @@ import os
 from apiflask import APIFlask
 
 from app.celery_worker import make_celery, celery
-from app.ro_crates.routes import ro_crates_bp
+from app.ro_crates.routes import ro_crates_post_bp, ro_crates_get_bp
 from app.utils.config import DevelopmentConfig, ProductionConfig, make_celery
 
 
@@ -20,7 +20,8 @@ def create_app() -> APIFlask:
     :return: Flask: A configured Flask application instance.
     """
     app = APIFlask(__name__)
-    app.register_blueprint(ro_crates_bp, url_prefix="/ro_crates")
+    app.register_blueprint(ro_crates_post_bp, url_prefix="/ro_crates")
+    app.register_blueprint(ro_crates_get_bp, url_prefix="/ro_crates")
 
     # Load configuration:
     if os.getenv("FLASK_ENV") == "production":
