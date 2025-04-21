@@ -100,7 +100,6 @@ def perform_ro_crate_validation(
             file_path,
         )
         settings = services.ValidationSettings(
-            data_path=full_file_path,
             rocrate_uri=full_file_path,
             # Only include profile_identifier if the profile_name is provided:
             **({"profile_identifier": profile_name} if profile_name else {}),
