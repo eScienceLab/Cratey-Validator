@@ -80,12 +80,15 @@ def update_validation_status_in_minio(crate_id: str, validation_status: str) -> 
 
         # The object in MinIO is <crate_id>/validation_status.txt
         object_name = f"{crate_id}/validation_status.txt"
+        
+        # convert to utf-8 encoded string
+        validation_string = json.dumps(validation_status).encode("utf-8")
 
         minio_client.put_object(
             bucket_name,
             object_name,
-            data=BytesIO(json.dumps(validation_status).encode("utf-8")),
-            length=len(validation_status.encode("utf-8")),
+            data=BytesIO(validation_string),
+            length=len(validation_string),
             content_type="application/json",
         )
 
