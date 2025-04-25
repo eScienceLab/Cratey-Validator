@@ -36,13 +36,15 @@ app/
    cd crate-validation-service
    ```
 
-2. Build and start the services using Docker Compose:
+2. Create the `.env` file for shared environment information. An example environment file is included (`example.env`), which can be copied for this purpose. But make sure to change any security settings (username and passwords).
+
+3. Build and start the services using Docker Compose:
     ```bash
    docker compose build
    docker compose up
    ```
 
-3. Set up the MinIO bucket
+4. Set up the MinIO bucket
    1. Open the MinIO web interface at `http://localhost:9000`.  
    2. Log in with your MinIO credentials.  
    3. Create a new bucket named `ro-crates`.  
