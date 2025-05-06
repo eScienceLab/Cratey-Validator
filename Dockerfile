@@ -12,6 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN useradd -ms /bin/bash flaskuser
+RUN chown -R flaskuser:flaskuser /app
+
+USER flaskuser
+
 EXPOSE 5000
 
 CMD ["flask", "run", "--host=0.0.0.0"]
