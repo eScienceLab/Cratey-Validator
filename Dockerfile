@@ -20,3 +20,5 @@ USER flaskuser
 EXPOSE 5000
 
 CMD ["flask", "run", "--host=0.0.0.0"]
+
+LABEL org.opencontainers.image.source="https://github.com/eScienceLab/Cratey-Validator"
