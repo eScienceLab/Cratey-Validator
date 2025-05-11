@@ -1,8 +1,8 @@
 # Git
-.git
-.github
-.gitignore
-.gitattributes
+**/.git
+**/.github
+**/.gitignore
+**/.gitattributes
 
 
 # Environments
