@@ -22,15 +22,14 @@ def get_ro_crate_validation_by_id(json_data) -> tuple[Response, int]:
     """
     Endpoint to obtain an RO-Crate validation result using its ID from MinIO.
 
-    Args:
-      crate_id:
-        The ID of the RO-Crate to validate. _Required_.
+    Parameters:
+    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
 
     Returns:
-      A tuple containing the validation result and an HTTP status code.
+    - A tuple containing the validation result and an HTTP status code.
 
     Raises:
-      KeyError: If required parameters (`crate_id`) are missing.
+    - KeyError: If required parameters (`crate_id`) are missing.
     """
 
     try:
