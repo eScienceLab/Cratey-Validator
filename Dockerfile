@@ -9,7 +9,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY cratey.py LICENSE /app/
+COPY app /app/app
 
 RUN useradd -ms /bin/bash flaskuser
 RUN chown -R flaskuser:flaskuser /app
