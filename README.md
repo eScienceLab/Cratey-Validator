@@ -60,6 +60,16 @@ app/
 
       ![Validate MinIO versioning is enabled](docs/assets/validate-minio-versioning-enabled.webp "Validate MinIO versioning is enabled")
 
+
+## Development
+
+For standard usage the Docker Compose script uses prebuilt containers.
+For testing locally developed containers use the alternate Docker Compose file:
+```bash
+   docker compose --file docker-compose-develop.yml build
+   docker compose --file docker-compose-develop.yml up
+``` 
+
 ## Example Usage
 
 ```
