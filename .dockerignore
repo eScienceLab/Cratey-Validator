@@ -1,0 +1,24 @@
+# Git
+.git
+.github
+.gitignore
+.gitattributes
+
+
+# Environments
+example.env
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# OSX files
+**/.DS_Store
+
+# Docker
+Dockerfile
+docker-compose*
+.dockerignore
