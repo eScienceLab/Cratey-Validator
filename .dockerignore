@@ -22,3 +22,6 @@ venv.bak/
 Dockerfile
 docker-compose*
 .dockerignore
+
+# Python
+**/__pycache__
