@@ -7,11 +7,18 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --upgrade pip
-RUN pip install roc-validator
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY cratey.py LICENSE /app/
+COPY app /app/app
+
+RUN useradd -ms /bin/bash flaskuser
+RUN chown -R flaskuser:flaskuser /app
+
+USER flaskuser
 
 EXPOSE 5000
 
 CMD ["flask", "run", "--host=0.0.0.0"]
+
+LABEL org.opencontainers.image.source="https://github.com/eScienceLab/Cratey-Validator"
