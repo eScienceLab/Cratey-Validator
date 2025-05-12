@@ -40,8 +40,7 @@ app/
 
 3. Build and start the services using Docker Compose:
     ```bash
-   docker compose build
-   docker compose up
+   docker compose up --build
    ```
 
 4. Set up the MinIO bucket
@@ -66,8 +65,7 @@ app/
 For standard usage the Docker Compose script uses prebuilt containers.
 For testing locally developed containers use the alternate Docker Compose file:
 ```bash
-   docker compose --file docker-compose-develop.yml build
-   docker compose --file docker-compose-develop.yml up
+   docker compose --file docker-compose-develop.yml up --build
 ``` 
 
 ## Example Usage
