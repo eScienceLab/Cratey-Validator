@@ -40,8 +40,7 @@ app/
 
 3. Build and start the services using Docker Compose:
     ```bash
-   docker compose build
-   docker compose up
+   docker compose up --build
    ```
 
 4. Set up the MinIO bucket
@@ -59,6 +58,15 @@ app/
       - The **Display Object Versions** option should be clickable.
 
       ![Validate MinIO versioning is enabled](docs/assets/validate-minio-versioning-enabled.webp "Validate MinIO versioning is enabled")
+
+
+## Development
+
+For standard usage the Docker Compose script uses prebuilt containers.
+For testing locally developed containers use the alternate Docker Compose file:
+```bash
+   docker compose --file docker-compose-develop.yml up --build
+``` 
 
 ## Example Usage
 

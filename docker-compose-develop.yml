@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   flask:
-    image: "ghcr.io/esciencelab/cratey-validator:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5001:5000"
     environment:
@@ -18,8 +20,9 @@ services:
       - minio
 
   celery_worker:
-    image: "ghcr.io/esciencelab/cratey-validator:latest"
-    command: celery -A app.celery_worker.celery worker --loglevel=info -E
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
