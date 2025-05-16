@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   flask:
-    image: "ghcr.io/esciencelab/cratey-validator:latest"
+    platform: linux/x86_64
+    image: "ghcr.io/esciencelab/cratey-validator:0.1"
     ports:
       - "5001:5000"
     environment:
@@ -19,7 +20,8 @@ services:
       - minio
 
   celery_worker:
-    image: "ghcr.io/esciencelab/cratey-validator:latest"
+    platform: linux/x86_64
+    image: "ghcr.io/esciencelab/cratey-validator:0.1"
     command: celery -A app.celery_worker.celery worker --loglevel=info -E
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
