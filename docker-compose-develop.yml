@@ -15,6 +15,7 @@ services:
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
     depends_on:
       - redis
       - minio
@@ -23,12 +24,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: celery -A app.celery_worker.celery worker --loglevel=info -E
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
     depends_on:
       - redis
       - minio
