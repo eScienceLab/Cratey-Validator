@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  flask:
+    image: "ghcr.io/esciencelab/cratey-validator:latest"
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_APP=cratey.py
+      - FLASK_ENV=development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+    depends_on:
+      - redis
+      - minio
+
+  celery_worker:
+    image: "ghcr.io/esciencelab/cratey-validator:latest"
+    command: celery -A app.celery_worker.celery worker --loglevel=info -E
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+    depends_on:
+      - redis
+      - minio
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: "minio/minio"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BROWSER_REDIRECT_PORT=9001
+    command: server --console-address ":9001" /data
+    volumes:
+      - minio_data:/data
+
+volumes:
+  minio_data:
