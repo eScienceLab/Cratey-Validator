@@ -6,15 +6,18 @@
 
 import logging
 import os
+from tempfile import TemporaryDirectory
 
 from rocrate_validator import services
 from rocrate_validator.models import ValidationResult
+from rocrate_validator.requirements.shacl import models
 
 from app.celery_worker import celery
 from app.utils.minio_utils import (
     fetch_ro_crate_from_minio,
     update_validation_status_in_minio,
-    get_validation_status_from_minio
+    get_validation_status_from_minio,
+    unzip_ro_crate,
 )
 from app.utils.webhook_utils import send_webhook_notification
 
@@ -82,31 +85,48 @@ def perform_ro_crate_validation(
     file_path: str, profile_name: str | None
 ) -> ValidationResult | str:
     """
-    Validates an RO-Crate using the provided file path and profile name.
+    Validates an RO-Crate using the provided .zip file path and profile name.
+    The .zip file is extracted to a temporary directory for validation.
 
-    :param file_path: The path to the RO-Crate file to validate
-    :param profile_name: The name of the validation profile to use. Defaults to None. If None, the CRS4 validator will
-        attempt to determine the profile.
-    :return: The validation result.
-    :raises Exception: If an error occurs during the validation process.
+    :param file_path: Path to the RO-Crate .zip file to validate.
+    :param profile_name: Name of the validation profile to use. If None, the validator will auto-detect.
+    :return: The validation result, or an error message string if validation fails.
     """
 
     try:
-        logging.info(f"Validating {file_path} with profile {profile_name}")
-
-        full_file_path = os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
-            file_path,
-        )
-        settings = services.ValidationSettings(
-            rocrate_uri=full_file_path,
-            # Only include profile_identifier if the profile_name is provided:
-            **({"profile_identifier": profile_name} if profile_name else {}),
+        logging.info(
+            f"Unzipping and validating {file_path} with profile {profile_name}"
         )
 
-        return services.validate(settings)
+        with TemporaryDirectory() as temp_dir:
+            unzip_ro_crate(file_path, temp_dir)
+
+            # Search for directory with ro-crate-metadata.json:
+            crate_root = None
+            for root, dirs, files in os.walk(temp_dir):
+                if "ro-crate-metadata.json" in files:
+                    crate_root = root
+                    break
+
+            if not crate_root:
+                raise FileNotFoundError(
+                    "Could not locate ro-crate-metadata.json after extraction"
+                )
+
+            logging.info(f"Detected RO-Crate root directory: {crate_root}")
+
+            # Print directory contents:
+            for root, dirs, files in os.walk(crate_root):
+                for f in files:
+                    logging.info(f"Validator sees file: {os.path.join(root, f)}")
+
+            settings = services.ValidationSettings(
+                rocrate_uri=crate_root,
+                requirement_severity=models.Severity.REQUIRED,
+                **({"profile_identifier": profile_name} if profile_name else {}),
+            )
+
+            return services.validate(settings)
 
     except Exception as e:
         logging.error(f"Unexpected error during validation: {e}")

@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import tempfile
+import zipfile
 
 from dotenv import load_dotenv
 from io import BytesIO
@@ -80,9 +81,11 @@ def update_validation_status_in_minio(crate_id: str, validation_status: str) -> 
 
         # The object in MinIO is <crate_id>/validation_status.txt
         object_name = f"{crate_id}/validation_status.txt"
-        
+
         # convert pretty string to dictionary, then back to plain utf-8 encoded string
-        validation_string = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
+        validation_string = json.dumps(
+            json.loads(validation_status), indent=None
+        ).encode("utf-8")
 
         minio_client.put_object(
             bucket_name,
@@ -178,3 +181,16 @@ def get_minio_client_and_bucket() -> [Minio, str]:
         )
 
     return minio_client, bucket_name
+
+
+def unzip_ro_crate(file_path: str, destination_dir: str) -> str:
+    """
+    Unzips an RO-Crate archive to the destination directory.
+
+    :param file_path: Path to the .zip file.
+    :param destination_dir: Directory to extract contents to.
+    :return: Path to the extracted directory (same as destination_dir).
+    """
+    with zipfile.ZipFile(file_path, "r") as zip_ref:
+        zip_ref.extractall(destination_dir)
+    return destination_dir
