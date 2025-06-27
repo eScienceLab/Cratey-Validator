@@ -8,7 +8,10 @@ from apiflask import APIBlueprint, Schema
 from apiflask.fields import Integer, String
 from flask import request, Response
 
-from app.services.validation_service import queue_ro_crate_validation_task
+from app.services.validation_service import (
+    queue_ro_crate_validation_task, 
+    queue_ro_crate_metadata_validation_task
+)
 
 post_routes_bp = APIBlueprint("post_routes", __name__)
 
@@ -17,6 +20,10 @@ class validate_data(Schema):
     profile_name = String(required=False)
     webhook_url = String(required=False)
 
+class validate_json(Schema):
+    crate_json = String(required=True)
+    profile_name = String(required=False)
+    
 
 @post_routes_bp.post("/validate_by_id")
 @post_routes_bp.input(validate_data(partial=True), location='json')
@@ -80,3 +87,34 @@ def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
         profile_name = None
 
     return queue_ro_crate_validation_task(crate_id, profile_name)
+
+
+@post_routes_bp.post("/validate_metadata")
+@post_routes_bp.input(validate_json(partial=True), location='json') # -> json_data
+def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
+    """
+    Endpoint to validate an RO-Crate JSON file uploaded to the Service.
+
+    Parameters:
+    - **crate_json**: The RO-Crate JSON-LD, as a string. _Required_
+    - **profile_name**: The profile name for validation. _Optional_.
+
+    Returns:
+    - A tuple containing the validation task's response and an HTTP status code.
+
+    Raises:
+    - KeyError: If required parameters (`crate_json`) are missing.
+    """
+
+    try:
+        crate_json = json_data['crate_json']
+    except:
+        raise KeyError("Missing required parameter: 'crate_json'")
+
+    try:
+        profile_name = json_data['profile_name']
+    except:
+        profile_name = None
+
+    return queue_ro_crate_metadata_validation_task(crate_json, profile_name)
+

@@ -10,6 +10,7 @@ from flask import jsonify, Response
 
 from app.tasks.validation_tasks import (
     process_validation_task_by_id,
+    process_validation_task_by_metadata,
     return_ro_crate_validation
     )
 
@@ -37,6 +38,39 @@ def queue_ro_crate_validation_task(
     try:
         process_validation_task_by_id.delay(crate_id, profile_name, webhook_url)
         return jsonify({"message": "Validation in progress"}), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def queue_ro_crate_metadata_validation_task(
+    crate_json, profile_name=None, webhook_url=None
+) -> tuple[Response, int]:
+    """
+    Queues an RO-Crate for validation with Celery.
+
+    :param crate_id: The ID of the RO-Crate to validate.
+    :param profile_name: The profile to validate against.
+    :param webhook_url: The URL to POST the validation results to.
+    :return: A tuple containing a JSON response and an HTTP status code.
+    :raises: Exception: If an error occurs whilst queueing the task.
+    """
+
+    logging.info(f"Processing: {crate_json}, {profile_name}, {webhook_url}")
+
+    if not crate_json:
+        return jsonify({"error": "Missing required parameter: crate_json"}), 400
+
+    try:
+        result = process_validation_task_by_metadata.delay(
+                                                     crate_json,
+                                                     profile_name,
+                                                     webhook_url
+                )
+        if webhook_url:
+            return jsonify({"message": "Validation in progress"}), 202
+        else:
+            return jsonify({"result": result.get()}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
