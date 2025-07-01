@@ -1,0 +1,101 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "example dataset",
+            "description": "crate that should conform with validator requirements",
+            "datePublished": "2024-03-17T15:55:54+00:00",
+            "license": {
+                "@id": "http://spdx.org/licenses/MIT"
+            },
+            "hasPart": [
+                {
+                    "@id": "paper.pdf"
+                },
+                {
+                    "@id": "results.csv"
+                },
+                {
+                    "@id": "images/figure.svg"
+                },
+                {
+                    "@id": "logs/"
+                }
+            ]
+        },
+        {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+                "@id": "./"
+            },
+            "conformsTo": {
+                "@id": "https://w3id.org/ro/crate/1.1"
+            }
+        },
+        {
+            "@id": "paper.pdf",
+            "@type": "File",
+            "author": [
+                {
+                    "@id": "https://orcid.org/0000-0000-0000-0000"
+                },
+                {
+                    "@id": "https://orcid.org/0000-0000-0000-0001"
+                }
+            ],
+            "encodingFormat": "application/pdf",
+            "name": "manuscript"
+        },
+        {
+            "@id": "results.csv",
+            "@type": "File",
+            "author": {
+                "@id": "https://orcid.org/0000-0000-0000-0000"
+            },
+            "encodingFormat": "text/csv",
+            "name": "experimental data"
+        },
+        {
+            "@id": "images/figure.svg",
+            "@type": "File",
+            "author": {
+                "@id": "https://orcid.org/0000-0000-0000-0001"
+            },
+            "encodingFormat": "image/svg+xml",
+            "name": "bar chart"
+        },
+        {
+            "@id": "logs/",
+            "@type": "Dataset"
+        },
+        {
+            "@id": "https://orcid.org/0000-0000-0000-0000",
+            "@type": "Person",
+            "affiliation": "University of Flatland",
+            "name": "Alice Doe"
+        },
+        {
+            "@id": "https://orcid.org/0000-0000-0000-0001",
+            "@type": "Person",
+            "affiliation": "University of Flatland",
+            "name": "Bob Doe"
+        },
+        {
+            "@id": "#hdr2024",
+            "@type": "Project Meeting",
+            "endDate": "2024-04-16",
+            "location": "Swansea, UK",
+            "name": "HDR-UK 2024",
+            "startDate": "2024-04-15"
+        },
+        {
+            "@id": "https://spdx.org/licenses/MIT",
+            "@type": "CreativeWork",
+            "name": "MIT Licence",
+            "identifier": "MIT"
+        }
+    ]
+}
