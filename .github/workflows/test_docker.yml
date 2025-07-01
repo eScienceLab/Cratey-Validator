@@ -29,6 +29,7 @@ jobs:
 
       - name: Build Docker Compose Containers
         run: |
+          cp example.env .env
           docker compose -f docker-compose-develop.yml build 
 
       - name: Spin Up Docker Compose and Run Tests
