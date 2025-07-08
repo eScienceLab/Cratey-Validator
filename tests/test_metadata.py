@@ -25,7 +25,7 @@ def test_validate_metadata_with_all_fields(client: FlaskClient):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_metadata_validation_task") as mock_queue:
         mock_queue.return_value = ({"status": "success"}, 200)
 
-        response = client.post("/ro_crates/validate_metadata", json=test_data)
+        response = client.post("/v1/validate_metadata", json=test_data)
         print(response.json)
         mock_queue.assert_called_once_with(
                 test_data["crate_json"],
@@ -49,7 +49,7 @@ def test_validate_metadata_without_profile_name(client: FlaskClient):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_metadata_validation_task") as mock_queue:
         mock_queue.return_value = ({"status": "success"}, 200)
 
-        response = client.post("/ro_crates/validate_metadata", json=test_data)
+        response = client.post("/v1/validate_metadata", json=test_data)
         mock_queue.assert_called_once_with(test_data["crate_json"], None)
         assert response.status_code == 200
         assert response.json == {"status": "success"}
@@ -65,6 +65,6 @@ def test_validate_metadata_missing_crate_json(client: FlaskClient):
         "profile_name": "default"
     }
 
-    response = client.post("/ro_crates/validate_metadata", json=test_data)
+    response = client.post("/v1/validate_metadata", json=test_data)
     assert response.status_code == 422
     assert "Missing data for required field" in response.get_data(as_text=True)
