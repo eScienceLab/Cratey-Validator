@@ -23,7 +23,7 @@ def docker_compose():
 
 
 def test_validate_metadata():
-    url = "http://localhost:5001/ro_crates/validate_metadata"
+    url = "http://localhost:5001/v1/validate_metadata"
     headers = {
         "accept": "application/json",
         "Content-Type": "application/json"
