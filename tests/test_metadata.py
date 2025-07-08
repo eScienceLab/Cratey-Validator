@@ -11,6 +11,12 @@ def client():
 
 
 def test_validate_metadata_with_all_fields(client: FlaskClient):
+    """
+    If both profile name and crate json are provided then processing
+    of the RO-Crate metadata should continue, and return:
+        - 200 status code
+        - JSON data object which includes "status" which is "success"
+    """
     test_data = {
         "crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
         "profile_name": "default"
@@ -31,9 +37,10 @@ def test_validate_metadata_with_all_fields(client: FlaskClient):
 
 def test_validate_metadata_without_profile_name(client: FlaskClient):
     """
-    If the profile name is not specified then :
-        - 422 error
-        - Error message which includes 'Missing data for required field'
+    If the profile name is not specified then processing
+    of the RO-Crate metadata should continue, and return:
+        - 200 status code
+        - JSON data object which includes "status" which is "success"
     """
     test_data = {
         "crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}'
@@ -51,7 +58,7 @@ def test_validate_metadata_without_profile_name(client: FlaskClient):
 def test_validate_metadata_missing_crate_json(client: FlaskClient):
     """
     If the RO-Crate is missing APIFlask should return:
-        - 422 error
+        - 422 status code
         - Error message which includes 'Missing data for required field'
     """
     test_data = {
