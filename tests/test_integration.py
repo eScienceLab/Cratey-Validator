@@ -22,7 +22,6 @@ def docker_compose():
     subprocess.run(["docker", "compose", "down"], check=True)
 
 
-
 def test_validate_metadata():
     url = "http://localhost:5001/ro_crates/validate_metadata"
     headers = {
@@ -50,4 +49,4 @@ def test_validate_metadata():
 
     # Assertions — update based on expected API behavior
     assert response.status_code == 200
-    assert response_result['passed'] == True
+    assert response_result['passed'] is True
