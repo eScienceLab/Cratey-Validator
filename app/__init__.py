@@ -20,8 +20,8 @@ def create_app() -> APIFlask:
     :return: Flask: A configured Flask application instance.
     """
     app = APIFlask(__name__)
-    app.register_blueprint(v1_post_bp, url_prefix="/v1")
-    app.register_blueprint(v1_get_bp, url_prefix="/v1")
+    app.register_blueprint(v1_post_bp, url_prefix="/v1/ro_crates")
+    app.register_blueprint(v1_get_bp, url_prefix="/v1/ro_crates")
 
     # Load configuration:
     if os.getenv("FLASK_ENV") == "production":
