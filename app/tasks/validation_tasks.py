@@ -109,7 +109,7 @@ def process_validation_task_by_metadata(
         validation_result = perform_ro_crate_validation(file_path,
                                                         profile_name,
                                                         skip_checks_list
-                            )
+                                                        )
 
         if isinstance(validation_result, str):
             logging.error(f"Validation failed: {validation_result}")
@@ -129,15 +129,18 @@ def process_validation_task_by_metadata(
 
         # Send failure notification via webhook
         error_data = {"profile_name": profile_name, "error": str(e)}
-        send_webhook_notification(webhook_url, error_data)
+        if webhook_url:
+            send_webhook_notification(webhook_url, error_data)
 
     finally:
         # Clean up the temporary file if it was created:
         if file_path and os.path.exists(file_path):
             shutil.rmtree(file_path)
 
-        return validation_result.to_json()
-        
+        if isinstance(validation_result, str):
+            return validation_result
+        else:
+            return validation_result.to_json()
 
 
 def perform_ro_crate_validation(
