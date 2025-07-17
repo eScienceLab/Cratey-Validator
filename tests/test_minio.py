@@ -15,12 +15,6 @@ def mock_minio_response():
     response.data.decode.return_value = json.dumps({"status": "valid"})
     return response
 
-# @pytest.fixture
-# def mock_minio_response():
-#    mock_response = mock.Mock()
-#    return mock_response
-#    mock_response.data.decode.return_value = json.dumps({"status": "valid"})
-
 # Testing function: get_minio_client_and_bucket
 
 def test_get_minio_client_success(monkeypatch):
