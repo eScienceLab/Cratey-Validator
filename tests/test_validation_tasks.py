@@ -1,7 +1,4 @@
-import os
-import pytest
 from unittest import mock
-from rocrate_validator.models import ValidationResult
 
 from app.tasks.validation_tasks import (
     process_validation_task_by_id,
