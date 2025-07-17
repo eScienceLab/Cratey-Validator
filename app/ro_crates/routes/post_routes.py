@@ -5,25 +5,27 @@
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
 from apiflask import APIBlueprint, Schema
-from apiflask.fields import Integer, String
-from flask import request, Response
+from apiflask.fields import String
+from flask import Response
 
 from app.services.validation_service import (
-    queue_ro_crate_validation_task, 
+    queue_ro_crate_validation_task,
     queue_ro_crate_metadata_validation_task
 )
 
 post_routes_bp = APIBlueprint("post_routes", __name__)
+
 
 class ValidateData(Schema):
     crate_id = String(required=True)
     profile_name = String(required=False)
     webhook_url = String(required=False)
 
+
 class ValidateJSON(Schema):
     crate_json = String(required=True)
     profile_name = String(required=False)
-    
+
 
 @post_routes_bp.post("/validate_by_id")
 @post_routes_bp.input(ValidateData(partial=True), location='json')
@@ -59,8 +61,9 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
 
     return queue_ro_crate_validation_task(crate_id, profile_name, webhook_url)
 
+
 @post_routes_bp.post("/validate_by_id_no_webhook")
-@post_routes_bp.input(ValidateData(partial=True), location='json') # -> json_data
+@post_routes_bp.input(ValidateData(partial=True), location='json')  # -> json_data
 def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
@@ -90,7 +93,7 @@ def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
 
 
 @post_routes_bp.post("/validate_metadata")
-@post_routes_bp.input(ValidateJSON(partial=True), location='json') # -> json_data
+@post_routes_bp.input(ValidateJSON(partial=False), location='json')  # -> json_data
 def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate JSON file uploaded to the Service.
@@ -117,4 +120,3 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
         profile_name = None
 
     return queue_ro_crate_metadata_validation_task(crate_json, profile_name)
-
