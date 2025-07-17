@@ -3,10 +3,12 @@ import pytest
 from unittest import mock
 from rocrate_validator.models import ValidationResult
 
-from app.tasks.validation_tasks import process_validation_task_by_id
-from app.tasks.validation_tasks import perform_ro_crate_validation
-from app.tasks.validation_tasks import return_ro_crate_validation
-from app.tasks.validation_tasks import process_validation_task_by_metadata
+from app.tasks.validation_tasks import (
+    process_validation_task_by_id,
+    perform_ro_crate_validation,
+    return_ro_crate_validation,
+    process_validation_task_by_metadata
+)
 
 
 # Test function: process_validation_task_by_id
