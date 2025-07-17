@@ -1,5 +1,4 @@
 import os
-import tempfile
 import json
 import pytest
 from io import BytesIO
@@ -16,6 +15,7 @@ def mock_minio_response():
     return response
 
 # Testing function: get_minio_client_and_bucket
+
 
 def test_get_minio_client_success(monkeypatch):
     # Set required env vars
@@ -190,7 +190,7 @@ def test_update_validation_status_success(mock_get_client, mock_load_dotenv):
 
     # FIXME: Original suggested test expected 4 values in args, but returned only 2.
     #        Solution was to check both args and kwargs for the 'data' and 'length' objects.
-    #        Do we need to chose one format of call_args for our tests, or is this ambiguity okay? 
+    #        Do we need to chose one format of call_args for our tests, or is this ambiguity okay?
     bucket_name = args[0] if args else kwargs["bucket_name"]
     object_name = args[1] if len(args) > 1 else kwargs["object_name"]
     actual_data_stream = args[2] if len(args) > 2 else kwargs["data"]
