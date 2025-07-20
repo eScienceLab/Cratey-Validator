@@ -8,7 +8,6 @@ import os
 
 from apiflask import APIFlask
 
-from app.celery_worker import make_celery, celery
 from app.ro_crates.routes import v1_post_bp, v1_get_bp
 from app.utils.config import DevelopmentConfig, ProductionConfig, make_celery
 
