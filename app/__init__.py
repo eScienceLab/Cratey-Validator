@@ -9,7 +9,8 @@ import os
 from apiflask import APIFlask
 
 from app.ro_crates.routes import v1_post_bp, v1_get_bp
-from app.utils.config import DevelopmentConfig, ProductionConfig, make_celery
+from app.utils.config import DevelopmentConfig, ProductionConfig, InvalidAPIUsage, make_celery
+from flask import jsonify
 
 
 def create_app() -> APIFlask:
@@ -21,6 +22,10 @@ def create_app() -> APIFlask:
     app = APIFlask(__name__)
     app.register_blueprint(v1_post_bp, url_prefix="/v1/ro_crates")
     app.register_blueprint(v1_get_bp, url_prefix="/v1/ro_crates")
+
+    @app.errorhandler(InvalidAPIUsage)
+    def invalid_api_usage(e):
+        return jsonify(e.to_dict()), e.status_code
 
     # Load configuration:
     if os.getenv("FLASK_ENV") == "production":
