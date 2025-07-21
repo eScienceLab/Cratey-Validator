@@ -10,9 +10,11 @@ def client():
     return app.test_client()
 
 
+# Test API: /v1/ro_crates/{crate_id}/validation
+
 def test_validate_by_id_success(client):
+    crate_id = "crate-123"
     payload = {
-        "crate_id": "crate-123",
         "webhook_url": "https://webhook.example.com",
         "profile_name": "default"
     }
@@ -20,7 +22,7 @@ def test_validate_by_id_success(client):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
         mock_queue.return_value = ({"message": "Validation in progress"}, 202)
 
-        response = client.post("/v1/ro_crates/validate_by_id", json=payload)
+        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
@@ -32,37 +34,56 @@ def test_validate_by_id_missing_crate_id(client):
         "webhook_url": "https://webhook.example.com"
     }
 
-    response = client.post("/v1/ro_crates/validate_by_id", json=payload)
+    response = client.post("/v1/ro_crates//validation", json=payload)
 
-    assert response.status_code == 422
-    assert "Missing data for required field" in response.get_data(as_text=True)
+    assert response.status_code == 404
 
 
-def test_validate_by_id_missing_webhook_url(client):
+def test_validate_by_id_missing_profile_name_and_webhook_url(client):
+    crate_id = "crate-123"
     payload = {
-        "crate_id": "crate-123"
     }
 
-    response = client.post("/v1/ro_crates/validate_by_id", json=payload)
+    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
+        mock_queue.return_value = ({"message": "Validation in progress"}, 202)
 
-    assert response.status_code == 400
-    assert b"Missing required parameter: 'webhook_url'" in response.data
+        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+        assert response.status_code == 202
+        assert response.json == {"message": "Validation in progress"}
+        mock_queue.assert_called_once_with("crate-123", None, None)
 
 
 def test_validate_by_id_missing_profile_name(client):
+    crate_id = "crate-123"
     payload = {
-        "crate_id": "crate-123",
         "webhook_url": "https://webhook.example.com"
     }
 
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
         mock_queue.return_value = ({"message": "Validation in progress"}, 202)
 
-        response = client.post("/v1/ro_crates/validate_by_id", json=payload)
+        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
         mock_queue.assert_called_once_with("crate-123", None, "https://webhook.example.com")
+
+
+def test_validate_by_id_missing_webhook_url(client):
+    crate_id = "crate-123"
+    payload = {
+        "profile_name": "default"
+    }
+
+    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
+        mock_queue.return_value = ({"message": "Validation in progress"}, 202)
+
+        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+        assert response.status_code == 202
+        assert response.json == {"message": "Validation in progress"}
+        mock_queue.assert_called_once_with("crate-123", "default", None)
 
 
 # Test API: /v1/ro_crates/validate_metadata
