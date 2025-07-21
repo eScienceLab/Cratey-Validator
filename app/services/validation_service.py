@@ -60,15 +60,15 @@ def queue_ro_crate_metadata_validation_task(
     logging.info(f"Processing: {crate_json}, {profile_name}, {webhook_url}")
 
     if not crate_json:
-        return jsonify({"error": "Missing required parameter: crate_json"}), 400
+        return jsonify({"error": "Missing required parameter: crate_json"}), 422
 
     try:
         json_dict = json.loads(crate_json)
     except json.decoder.JSONDecodeError as err:
-        return jsonify({"error": f"Required parameter crate_json is not valid JSON: {err}"}), 400
+        return jsonify({"error": f"Required parameter crate_json is not valid JSON: {err}"}), 422
     else:
         if len(json_dict) == 0:
-            return jsonify({"error": "Required parameter crate_json is empty"}), 400
+            return jsonify({"error": "Required parameter crate_json is empty"}), 422
 
     try:
         result = process_validation_task_by_metadata.delay(
