@@ -49,7 +49,7 @@ def test_queue_metadata_with_webhook(flask_app):
         mock_result = MagicMock()
         mock_delay.return_value = mock_result
 
-        crate_json = {"@context": "https://w3id.org/ro/crate/1.1/context"}
+        crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context"}'
         response, status = queue_ro_crate_metadata_validation_task(crate_json, "profile", "http://webhook")
 
         mock_delay.assert_called_once_with(crate_json, "profile", "http://webhook")
@@ -63,7 +63,7 @@ def test_queue_metadata_without_webhook(flask_app):
         mock_result.get.return_value = {"status": "ok"}
         mock_delay.return_value = mock_result
 
-        crate_json = {"@context": "https://w3id.org/ro/crate/1.1/context"}
+        crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context"}'
         response, status = queue_ro_crate_metadata_validation_task(crate_json, "profile", None)
 
         mock_delay.assert_called_once_with(crate_json, "profile", None)
@@ -76,6 +76,24 @@ def test_queue_metadata_missing_json(flask_app):
 
     assert status == 400
     assert response.json == {"error": "Missing required parameter: crate_json"}
+
+
+def test_queue_metadata_invalid_json(flask_app):
+
+    crate_json = '{'
+    response, status = queue_ro_crate_metadata_validation_task(crate_json)
+
+    assert status == 400
+    assert 'not valid JSON' in response.json['error']
+
+
+def test_queue_metadata_empty_json(flask_app):
+
+    crate_json = '{}'
+    response, status = queue_ro_crate_metadata_validation_task(crate_json)
+
+    assert status == 400
+    assert response.json == {"error": "Required parameter crate_json is empty"}
 
 
 def test_queue_metadata_exception(flask_app):
