@@ -112,10 +112,7 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     - KeyError: If required parameters (`crate_json`) are missing.
     """
 
-    if "crate_json" not in json_data or json_data["crate_json"] is None:
-        raise InvalidAPIUsage("Missing required parameter: 'crate_json'")
-    else:
-        crate_json = json_data["crate_json"]
+    crate_json = json_data["crate_json"]
 
     if "profile_name" in json_data:
         profile_name = json_data["profile_name"]
