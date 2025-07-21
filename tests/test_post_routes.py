@@ -2,7 +2,6 @@ from flask.testing import FlaskClient
 import pytest
 from unittest.mock import patch
 from app import create_app
-from flask import jsonify
 
 
 @pytest.fixture
