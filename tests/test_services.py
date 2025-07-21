@@ -74,7 +74,7 @@ def test_queue_metadata_without_webhook(flask_app):
 def test_queue_metadata_missing_json(flask_app):
     response, status = queue_ro_crate_metadata_validation_task(None)
 
-    assert status == 400
+    assert status == 422
     assert response.json == {"error": "Missing required parameter: crate_json"}
 
 
@@ -83,7 +83,7 @@ def test_queue_metadata_invalid_json(flask_app):
     crate_json = '{'
     response, status = queue_ro_crate_metadata_validation_task(crate_json)
 
-    assert status == 400
+    assert status == 422
     assert 'not valid JSON' in response.json['error']
 
 
@@ -92,14 +92,14 @@ def test_queue_metadata_empty_json(flask_app):
     crate_json = '{}'
     response, status = queue_ro_crate_metadata_validation_task(crate_json)
 
-    assert status == 400
+    assert status == 422
     assert response.json == {"error": "Required parameter crate_json is empty"}
 
 
 def test_queue_metadata_exception(flask_app):
     with patch("app.services.validation_service.process_validation_task_by_metadata.delay",
                side_effect=Exception("Celery error")):
-        crate_json = {"@context": "https://w3id.org/ro/crate/1.1/context"}
+        crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context"}'
         response, status = queue_ro_crate_metadata_validation_task(crate_json)
 
         assert status == 500
