@@ -30,7 +30,7 @@ class ValidateJSON(Schema):
 
 
 @post_routes_bp.post("/validate_by_id")
-@post_routes_bp.input(ValidateData(partial=True), location='json')
+@post_routes_bp.input(ValidateData(partial=False), location='json')
 def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
@@ -47,10 +47,7 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
-    if "crate_id" not in json_data or json_data["crate_id"] is None:
-        raise InvalidAPIUsage("Missing required parameter: 'crate_id'")
-    else:
-        crate_id = json_data["crate_id"]
+    crate_id = json_data["crate_id"]
 
     if "webhook_url" not in json_data or json_data["webhook_url"] is None:
         raise InvalidAPIUsage("Missing required parameter: 'webhook_url'")
