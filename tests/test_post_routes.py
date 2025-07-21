@@ -34,8 +34,8 @@ def test_validate_by_id_missing_crate_id(client):
 
     response = client.post("/v1/ro_crates/validate_by_id", json=payload)
 
-    assert response.status_code == 400
-    assert b"Missing required parameter: 'crate_id'" in response.data
+    assert response.status_code == 422
+    assert "Missing data for required field" in response.get_data(as_text=True)
 
 
 def test_validate_by_id_missing_webhook_url(client):
