@@ -126,3 +126,51 @@ def test_validate_metadata_missing_crate_json(client: FlaskClient):
     response = client.post("/v1/ro_crates/validate_metadata", json=test_data)
     assert response.status_code == 422
     assert "Missing data for required field" in response.get_data(as_text=True)
+
+
+def test_validate_metadata_emptystring_crate_json(client: FlaskClient):
+    """
+    If the RO-Crate is missing APIFlask should return:
+        - 422 status code
+        - Error message which includes 'Missing required parameter'
+    """
+    test_data = {
+        "crate_json": "",
+        "profile_name": "default"
+    }
+
+    response = client.post("/v1/ro_crates/validate_metadata", json=test_data)
+    assert response.status_code == 422
+    assert "Missing required parameter" in response.get_data(as_text=True)
+
+
+def test_validate_metadata_malformed_crate_json(client: FlaskClient):
+    """
+    If the RO-Crate is missing APIFlask should return:
+        - 422 status code
+        - Error message which includes 'not valid JSON'
+    """
+    test_data = {
+        "crate_json": "{",
+        "profile_name": "default"
+    }
+
+    response = client.post("/v1/ro_crates/validate_metadata", json=test_data)
+    assert response.status_code == 422
+    assert "not valid JSON" in response.get_data(as_text=True)
+
+
+def test_validate_metadata_emptydict_crate_json(client: FlaskClient):
+    """
+    If the RO-Crate is missing APIFlask should return:
+        - 422 status code
+        - Error message which includes 'Required parameter crate_json is empty'
+    """
+    test_data = {
+        "crate_json": "{}",
+        "profile_name": "default"
+    }
+
+    response = client.post("/v1/ro_crates/validate_metadata", json=test_data)
+    assert response.status_code == 422
+    assert "Required parameter crate_json is empty" in response.get_data(as_text=True)
