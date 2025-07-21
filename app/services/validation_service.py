@@ -5,6 +5,7 @@
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
 import logging
+import json
 
 from flask import jsonify, Response
 
@@ -44,7 +45,7 @@ def queue_ro_crate_validation_task(
 
 
 def queue_ro_crate_metadata_validation_task(
-    crate_json, profile_name=None, webhook_url=None
+    crate_json: str, profile_name=None, webhook_url=None
 ) -> tuple[Response, int]:
     """
     Queues an RO-Crate for validation with Celery.
@@ -60,6 +61,14 @@ def queue_ro_crate_metadata_validation_task(
 
     if not crate_json:
         return jsonify({"error": "Missing required parameter: crate_json"}), 400
+
+    try:
+        json_dict = json.loads(crate_json)
+    except json.decoder.JSONDecodeError as err:
+        return jsonify({"error": f"Required parameter crate_json is not valid JSON: {err}"}), 400
+    else:
+        if len(json_dict) == 0:
+            return jsonify({"error": "Required parameter crate_json is empty"}), 400
 
     try:
         result = process_validation_task_by_metadata.delay(
