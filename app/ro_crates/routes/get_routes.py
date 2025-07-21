@@ -4,9 +4,8 @@
 # License: MIT
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
-from apiflask import APIBlueprint, Schema
-from apiflask.fields import Integer, String
-from flask import request, Response
+from apiflask import APIBlueprint
+from flask import Response
 
 from app.services.validation_service import get_ro_crate_validation_task
 
