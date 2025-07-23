@@ -6,5 +6,5 @@ Werkzeug~=3.0.4
 redis~=5.2.0
 python-dotenv~=1.0.1
 apiflask~=2.4.0
-roc-validator~=0.6.5
+roc-validator~=0.4.6
 pytest~=8.4.1
