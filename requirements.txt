@@ -1,6 +1,6 @@
 celery~=5.4.0
 minio~=7.2.10
-requests~=2.32.3
+requests~=2.32.4
 Flask~=3.0.3
 Werkzeug~=3.0.4
 redis~=5.2.0
