@@ -8,6 +8,8 @@ from app.services.validation_service import (
     get_ro_crate_validation_task
 )
 
+from app.utils.minio_utils import InvalidAPIUsage
+
 
 @pytest.fixture
 def flask_app():
@@ -127,8 +129,11 @@ def test_get_validation_missing_id(flask_app):
 
 
 def test_get_validation_exception(flask_app):
-    with patch("app.services.validation_service.return_ro_crate_validation", side_effect=Exception("DB error")):
-        response, status = get_ro_crate_validation_task("crate123")
+    with patch("app.services.validation_service.return_ro_crate_validation",
+               side_effect=InvalidAPIUsage("MinIO S3 Error: empty", 500)):
 
-        assert status == 500
-        assert response.json == {"service error": "DB error"}
+        with pytest.raises(InvalidAPIUsage) as exc_info:
+            get_ro_crate_validation_task("crate789")
+
+        assert exc_info.value.status_code == 500
+        assert "MinIO S3 Error" in str(exc_info.value.message)
