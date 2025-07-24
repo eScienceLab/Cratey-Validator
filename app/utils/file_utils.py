@@ -51,4 +51,3 @@ def build_metadata_only_rocrate(crate_json: str) -> str:
     except Exception as e:
         logging.error(f"Unexpected error creating RO-Crate metadata: {e}")
         raise
-
