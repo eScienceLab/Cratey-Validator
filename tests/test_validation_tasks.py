@@ -1,4 +1,5 @@
 from unittest import mock
+import pytest
 
 from app.tasks.validation_tasks import (
     process_validation_task_by_id,
@@ -7,6 +8,7 @@ from app.tasks.validation_tasks import (
     process_validation_task_by_metadata
 )
 
+from app.utils.minio_utils import InvalidAPIUsage
 
 # Test function: process_validation_task_by_id
 
@@ -285,21 +287,32 @@ def test_validation_settings_error(mock_validation_settings, mock_validate):
 # Test function: return_ro_crate_validation
 
 @mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
-def test_return_validation_success(mock_get_validation):
-    mock_get_validation.return_value = {"status": "valid"}
+def test_return_validation_returns_dict(mock_get_status):
+    # Simulate dict result
+    mock_get_status.return_value = {"status": "passed", "errors": []}
 
-    crate_id = "crate-123"
-    result = return_ro_crate_validation(crate_id)
+    result = return_ro_crate_validation("crate123")
+    assert isinstance(result, dict)
+    assert result["status"] == "passed"
+    mock_get_status.assert_called_once_with("crate123")
 
-    assert result == {"status": "valid"}
-    mock_get_validation.assert_called_once_with(crate_id)
+@mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
+def test_return_validation_returns_string(mock_get_status):
+    # Simulate string result
+    mock_get_status.return_value = "Validation result: OK"
 
-
-@mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio", side_effect=Exception("Fetch failed"))
-def test_return_validation_exception(mock_get_validation):
-    crate_id = "crate-123"
-    result = return_ro_crate_validation(crate_id)
-
+    result = return_ro_crate_validation("crate456")
     assert isinstance(result, str)
-    assert "Fetch failed" in result
-    mock_get_validation.assert_called_once_with(crate_id)
+    assert "OK" in result
+    mock_get_status.assert_called_once_with("crate456")
+
+@mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
+def test_return_validation_raises_error(mock_get_status):
+    # Simulate exception
+    mock_get_status.side_effect = InvalidAPIUsage("MinIO S3 Error: empty", 500)
+
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        return_ro_crate_validation("crate789")
+
+    assert "MinIO S3 Error" in str(exc_info.value.message)
+    mock_get_status.assert_called_once_with("crate789")
