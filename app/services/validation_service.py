@@ -100,7 +100,4 @@ def get_ro_crate_validation_task(
     if not crate_id:
         return jsonify({"error": "Missing required parameter: crate_id"}), 400
 
-    try:
-        return return_ro_crate_validation(crate_id), 200
-    except Exception as e:
-        return jsonify({"service error": str(e)}), 500
+    return return_ro_crate_validation(crate_id), 200
