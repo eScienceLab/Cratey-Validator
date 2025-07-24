@@ -12,6 +12,7 @@ import tempfile
 from dotenv import load_dotenv
 from io import BytesIO
 from minio import Minio, S3Error
+from app.utils.config import InvalidAPIUsage
 
 
 logger = logging.getLogger(__name__)
@@ -23,43 +24,41 @@ def fetch_ro_crate_from_minio(crate_id: str) -> str:
 
     :param crate_id: The ID of the RO-Crate to fetch from MinIO.
     :return: The local file path where the RO-Crate is saved.
-    :raises S3Error: If an error occurs during the MinIO operation.
-    :raises ValueError: If the required environment variables are not set.
-    :raises Exception: If an unexpected error occurs during the operation.
     """
 
-    load_dotenv()
+    minio_client, bucket_name = get_minio_client_and_bucket()
 
-    try:
-        minio_client, bucket_name = get_minio_client_and_bucket()
+    rocrate_object = find_rocrate_object_on_minio(crate_id, minio_client, bucket_name)
 
-        object_name = f"{crate_id}.zip"
+    rocrate_path = rocrate_object.object_name
+    rocrate_name = rocrate_path.split('/')[-1]  
 
-        # Prepare temporary file path to store RO Crate for validation:
-        temp_dir = tempfile.mkdtemp()
-        file_path = os.path.join(temp_dir, object_name)
+    temp_dir = tempfile.mkdtemp()
+    root_path = os.path.join(temp_dir, rocrate_name)
 
-        logging.info(
-            f"Fetching RO-Crate {object_name} from MinIO bucket {bucket_name}. File path: {file_path}"
-        )
-        minio_client.fget_object(bucket_name, object_name, file_path)
-        logging.info(
-            f"RO-Crate {object_name} fetched successfully and saved to {file_path}."
-        )
+    logging.info(
+        f"Fetching RO-Crate {rocrate_name} from MinIO bucket {bucket_name}. File path {root_path}"
+    )
 
-        return file_path
+    if rocrate_object.is_dir:
+        os.makedirs(os.path.dirname(root_path), exist_ok=True)
 
-    except S3Error as s3_error:
-        logging.error(f"MinIO S3 Error: {s3_error}")
-        raise
+        objects_list = get_minio_object_list(rocrate_path, minio_client, bucket_name, recursive=True)
+        for obj in objects_list:
+            relative_path = obj.object_name[len(rocrate_path):].lstrip("/")
+            local_file_path = os.path.join(root_path, relative_path)
+            os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+            download_file_from_minio(minio_client, bucket_name, obj.object_name, local_file_path)
 
-    except ValueError as value_error:
-        logging.error(f"Configuration Error: {value_error}")
-        raise
+    else:
+        file_path = root_path
+        download_file_from_minio(minio_client, bucket_name, rocrate_path, file_path)
 
-    except Exception as e:
-        logging.error(f"Unexpected error fetching RO-Crate from MinIO: {e}")
-        raise
+    logging.info(
+        f"RO-Crate {rocrate_name} fetched successfully and saved to {root_path}."
+    )
+
+    return root_path
 
 
 def update_validation_status_in_minio(crate_id: str, validation_status: str) -> None:
@@ -73,16 +72,14 @@ def update_validation_status_in_minio(crate_id: str, validation_status: str) -> 
     :raises Exception: If an unexpected error occurs
     """
 
-    load_dotenv()
+    object_name = f"{crate_id}_validation/validation_status.txt"
+
+    # convert pretty string to dictionary, then back to plain utf-8 encoded string
+    validation_string = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
 
     try:
-        minio_client, bucket_name = get_minio_client_and_bucket()
 
-        # The object in MinIO is <crate_id>/validation_status.txt
-        object_name = f"{crate_id}/validation_status.txt"
-        
-        # convert pretty string to dictionary, then back to plain utf-8 encoded string
-        validation_string = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
+        minio_client, bucket_name = get_minio_client_and_bucket()
 
         minio_client.put_object(
             bucket_name,
@@ -92,43 +89,41 @@ def update_validation_status_in_minio(crate_id: str, validation_status: str) -> 
             content_type="application/json",
         )
 
-        logging.info(
-            f"Validation status file uploaded to {bucket_name}/{object_name} successfully."
-        )
-
     except S3Error as s3_error:
         logging.error(f"MinIO S3 Error: {s3_error}")
-        raise
+        raise InvalidAPIUsage(f"MinIO S3 Error: {s3_error}", 500)
 
     except ValueError as value_error:
         logging.error(f"Configuration Error: {value_error}")
-        raise
+        raise InvalidAPIUsage(f"Configuration Error: {value_error}", 500)
 
     except Exception as e:
         logging.error(f"Unexpected error updating validation status in MinIO: {e}")
-        raise
+        raise InvalidAPIUsage(f"Unknown Error: {e}", 500)
+
+    logging.info(
+        f"Validation status file uploaded to {bucket_name}/{object_name} successfully."
+    )
 
 
-def get_validation_status_from_minio(crate_id: str) -> dict | str:
+def get_validation_status_from_minio(crate_id: str) -> dict:
     """
     Checks for the existence of a validation report for the given RO-Crate in the MinIO bucket.
     Returns validation message if it exists, or notification that it is missing if not.
 
     :param crate_id: The ID of the RO-Crate in MinIO
     :return validation_status: Either the validation status, or note that this does not exist
-    :raises S3Error: If an error occurs during the MinIO operation
-    :raises ValueError: If the required environment variables are not set
-    :raises Exception: If an unexpected error occurs
 
     """
 
+    # The object in MinIO is <crate_id>_validation/validation_status.txt
+    object_name = f"{crate_id}_validation/validation_status.txt"
+
+    logging.info(f"Getting object {object_name}")
+
     try:
+
         minio_client, bucket_name = get_minio_client_and_bucket()
-
-        # The object in MinIO is <crate_id>/validation_status.txt
-        object_name = f"{crate_id}/validation_status.txt"
-
-        logging.info(f"Getting object {object_name}")
 
         response = minio_client.get_object(
             bucket_name,
@@ -141,18 +136,166 @@ def get_validation_status_from_minio(crate_id: str) -> dict | str:
 
     except S3Error as s3_error:
         logging.error(f"MinIO S3 Error: {s3_error}")
-        raise
+        raise InvalidAPIUsage(f"MinIO S3 Error: {s3_error}", 500)
 
     except ValueError as value_error:
         logging.error(f"Configuration Error: {value_error}")
-        raise
+        raise InvalidAPIUsage(f"Configuration Error: {value_error}", 500)
 
     except Exception as e:
         logging.error(f"Unexpected error retrieving validation status from MinIO: {e}")
-        raise
+        raise InvalidAPIUsage(f"Unknown Error: {e}", 500)
 
     else:
         return validation_message
+
+
+def download_file_from_minio(minio_client: object, bucket_name: str, object_path: str, file_path: str) -> None:
+    """
+    Downloads a file from MinIO
+
+    :param minio_client: MinIO object
+    :param bucket_name: name of MinIO bucket, string
+    :param object_path: path to object on MinIO, string
+    :param file_path: local path, string
+    :raises S3Error: If an error occurs during the MinIO operation
+    :raises ValueError: If the required environment variables are not set
+    :raises Exception: If an unexpected error occurs
+    """
+
+    try:
+        minio_client.fget_object(bucket_name, object_path, file_path)
+
+    except S3Error as s3_error:
+        logging.error(f"MinIO S3 Error: {s3_error}")
+        raise InvalidAPIUsage(f"MinIO S3 Error: {s3_error}", 500)
+
+    except ValueError as value_error:
+        logging.error(f"Configuration Error: {value_error}")
+        raise InvalidAPIUsage(f"Configuration Error: {value_error}", 500)
+
+    except Exception as e:
+        logging.error(f"Unexpected error retrieving file from MinIO: {e}")
+        raise InvalidAPIUsage(f"Unknown Error: {e}", 500)
+
+
+def find_validation_object_on_minio(rocrate_id: str, minio_client, bucket_name: str, storage_path: str = None) -> object:
+    """
+    Checks that the requested object exists on the MinIO instance.
+
+    If it does not exist then a False value is returned.
+    If it does exist then the minio.datatypes.Object is returned.
+
+    Inputs:
+    :param rocrate_id: string containing the name of ro-crate
+    :param storage_path: string containing the path within which the ro-crate should be
+    :param minio_client: minio object
+    :param bucket_name: string containing bucket on minio
+    :return return_object: rocrate object we require
+    :raise Exception: If validation result can't be found, 400
+    """
+
+    logging.info(f"Finding Validation result: {rocrate_id}_validation/validation_status.txt")
+
+    if storage_path:
+        file_path = f"{storage_path}/{rocrate_id}_validation/validation_status.txt"
+    else:
+        file_path = f"{rocrate_id}_validation/validation_status.txt"
+
+    file_list = get_minio_object_list(file_path, minio_client, bucket_name)
+
+    return_object = False
+    for obj in file_list:
+        if obj.object_name == file_path:
+            return_object = obj
+            break
+
+    if not return_object:
+        logging.error(f"No validation result yet for RO-Crate: {rocrate_id}")
+        raise InvalidAPIUsage(f"No validation result yet for RO-Crate: {rocrate_id}", 400)
+    else:
+        return return_object
+
+
+def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str, storage_path: str = None) -> object:
+    """
+    Checks that the requested object exists on the MinIO instance.
+
+    If it does not exist then a False value is returned.
+    If it does exist then the minio.datatypes.Object is returned.
+
+    Inputs:
+    :param rocrate_id: string containing the name of ro-crate
+    :param storage_path: string containing the path within which the ro-crate should be
+    :param minio_client: minio object
+    :param bucket_name: string containing bucket on minio
+    :return return_object: rocrate object we require
+    :raise Exception: If RO-Crate can't be found, 400
+    """
+
+    logging.info(f"Finding RO-Crate: {rocrate_id}")
+
+    if storage_path:
+        rocrate_path = f"{storage_path}/{rocrate_id}"
+    else:
+        rocrate_path = rocrate_id
+
+    rocrate_list = get_minio_object_list(rocrate_path, minio_client, bucket_name)
+
+    return_object = False
+    for obj in rocrate_list:
+        # TODO: We should be checking here for the existence of the ro-crate metadata file within this object too
+        if (obj.object_name == rocrate_path and obj.is_dir) or obj.object_name == f"{rocrate_path}.zip":
+            return_object = obj
+            break
+
+    if not return_object:
+        logging.error(f"No RO-Crate with prefix: {rocrate_path}")
+        raise InvalidAPIUsage(f"No RO-Crate with prefix: {rocrate_path}", 400)
+    else:
+        return return_object
+
+
+def get_minio_object_list(object_path: str, minio_client, bucket_name: str, recursive: bool = False) -> list:
+    """
+    Creates a list of objects which match the object_id and path_prefix
+
+    :param object_path: The object ID, string
+    :param path_prefix: Path prefix, string, optional
+    :param minio_client: MinIO client object
+    :param bucket_name: string
+    :param recursive: boolean, default = False
+    :return object_list: List containing objects of type minio.datatypes.Object
+    :raises S3Error: If an error occurs during the MinIO operation, 500
+    :raises ValueError: If the required environment variables are not set, 500
+    :raises Exception: If an unexpected error occurs, 500
+    """
+
+    try:
+        response = minio_client.list_objects(
+            bucket_name,
+            object_path,
+            recursive=recursive
+        )
+        object_list = [obj for obj in response]
+
+        response.close()
+        response.release_conn()
+
+    except S3Error as s3_error:
+        logging.error(f"MinIO S3 Error: {s3_error}")
+        raise InvalidAPIUsage(f"MinIO S3 Error: {s3_error}", 500)
+
+    except ValueError as value_error:
+        logging.error(f"Configuration Error: {value_error}")
+        raise InvalidAPIUsage(f"Configuration Error: {value_error}", 500)
+
+    except Exception as e:
+        logging.error(f"Unexpected error getting object list from MinIO: {e}")
+        raise InvalidAPIUsage(f"Unknown Error: {e}", 500)
+
+    else:
+        return object_list
 
 
 def get_minio_client_and_bucket() -> [Minio, str]:
