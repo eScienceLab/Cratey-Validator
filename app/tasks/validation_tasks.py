@@ -190,11 +190,6 @@ def return_ro_crate_validation(
     :raises Exception: If an error occurs in the retrieving the validation result
     """
 
-    try:
-        logging.info(f"Fetching validation result for RO-Crate {crate_id}")
+    logging.info(f"Fetching validation result for RO-Crate {crate_id}")
 
-        return get_validation_status_from_minio(crate_id)
-
-    except Exception as e:
-        logging.error(f"Unexpected error when retrieving validation: {e}")
-        return str(e)
+    return get_validation_status_from_minio(crate_id)
