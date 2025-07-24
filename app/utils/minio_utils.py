@@ -280,7 +280,6 @@ def get_minio_object_list(object_path: str, minio_client, bucket_name: str, recu
         object_list = [obj for obj in response]
 
         response.close()
-        response.release_conn()
 
     except S3Error as s3_error:
         logging.error(f"MinIO S3 Error: {s3_error}")
