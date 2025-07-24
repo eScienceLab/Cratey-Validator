@@ -10,6 +10,7 @@ from app.tasks.validation_tasks import (
 
 from app.utils.minio_utils import InvalidAPIUsage
 
+
 # Test function: process_validation_task_by_id
 
 @mock.patch("app.tasks.validation_tasks.os.remove")
@@ -296,6 +297,7 @@ def test_return_validation_returns_dict(mock_get_status):
     assert result["status"] == "passed"
     mock_get_status.assert_called_once_with("crate123")
 
+
 @mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
 def test_return_validation_returns_string(mock_get_status):
     # Simulate string result
@@ -305,6 +307,7 @@ def test_return_validation_returns_string(mock_get_status):
     assert isinstance(result, str)
     assert "OK" in result
     mock_get_status.assert_called_once_with("crate456")
+
 
 @mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
 def test_return_validation_raises_error(mock_get_status):
