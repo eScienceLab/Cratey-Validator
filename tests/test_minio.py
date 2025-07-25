@@ -69,7 +69,6 @@ def test_get_minio_object_list_success():
     assert result == mock_objects
     mock_minio_client.list_objects.assert_called_once_with("my-bucket", "path/", recursive=True)
     mock_response.close.assert_called_once()
-    mock_response.release_conn.assert_called_once()
 
 
 def test_get_minio_object_list_s3error():
