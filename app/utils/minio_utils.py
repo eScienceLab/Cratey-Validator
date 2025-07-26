@@ -186,7 +186,6 @@ def find_validation_object_on_minio(rocrate_id: str, minio_client, bucket_name: 
     If it does not exist then a False value is returned.
     If it does exist then the minio.datatypes.Object is returned.
 
-    Inputs:
     :param rocrate_id: string containing the name of ro-crate
     :param storage_path: string containing the path within which the ro-crate should be
     :param minio_client: minio object
@@ -224,7 +223,6 @@ def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str
     If it does not exist then a False value is returned.
     If it does exist then the minio.datatypes.Object is returned.
 
-    Inputs:
     :param rocrate_id: string containing the name of ro-crate
     :param storage_path: string containing the path within which the ro-crate should be
     :param minio_client: minio object
