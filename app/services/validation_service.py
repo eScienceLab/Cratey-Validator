@@ -16,6 +16,9 @@ from app.tasks.validation_tasks import (
     check_ro_crate_exists
     )
 
+from app.utils.config import InvalidAPIUsage
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +39,9 @@ def queue_ro_crate_validation_task(
 
     if check_ro_crate_exists(crate_id):
         logging.info("RO-Crate exists")
+    else:
+        logging.info("RO-Crate does not exist")
+        raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
 
     try:
         process_validation_task_by_id.delay(crate_id, profile_name, webhook_url)
