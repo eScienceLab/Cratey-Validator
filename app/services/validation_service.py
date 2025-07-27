@@ -12,7 +12,8 @@ from flask import jsonify, Response
 from app.tasks.validation_tasks import (
     process_validation_task_by_id,
     process_validation_task_by_metadata,
-    return_ro_crate_validation
+    return_ro_crate_validation,
+    check_ro_crate_exists
     )
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,8 @@ def queue_ro_crate_validation_task(
 
     logging.info(f"Processing: {crate_id}, {profile_name}, {webhook_url}")
 
-    if not crate_id:
-        return jsonify({"error": "Missing required parameter: crate_id"}), 400
+    if check_ro_crate_exists(crate_id):
+        logging.info("RO-Crate exists")
 
     try:
         process_validation_task_by_id.delay(crate_id, profile_name, webhook_url)
