@@ -211,7 +211,7 @@ def find_validation_object_on_minio(rocrate_id: str, minio_client, bucket_name: 
 
     if not return_object:
         logging.error(f"No validation result yet for RO-Crate: {rocrate_id}")
-        raise InvalidAPIUsage(f"No validation result yet for RO-Crate: {rocrate_id}", 400)
+        return False
     else:
         return return_object
 
@@ -243,7 +243,7 @@ def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str
     return_object = False
     for obj in rocrate_list:
         # TODO: We should be checking here for the existence of the ro-crate metadata file within this object too
-        if (obj.object_name == rocrate_path and obj.is_dir) or obj.object_name == f"{rocrate_path}.zip":
+        if (obj.object_name == f"{rocrate_path}/" and obj.is_dir) or obj.object_name == f"{rocrate_path}.zip":
             return_object = obj
             break
 

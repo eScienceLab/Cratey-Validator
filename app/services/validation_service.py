@@ -13,7 +13,8 @@ from app.tasks.validation_tasks import (
     process_validation_task_by_id,
     process_validation_task_by_metadata,
     return_ro_crate_validation,
-    check_ro_crate_exists
+    check_ro_crate_exists,
+    check_validation_exists
     )
 
 from app.utils.config import InvalidAPIUsage
@@ -100,11 +101,20 @@ def get_ro_crate_validation_task(
 
     :param crate_id: The ID of the RO-Crate to validate.
     :return: A tuple containing a JSON response and an HTTP status code.
-    :raises Exception: If an error occurs whilst retrieving RO-Crate
+    :raises Exception: If an error occurs whilst retreiving validation result
     """
     logging.info(f"Retrieving validation for: {crate_id}")
 
-    if not crate_id:
-        return jsonify({"error": "Missing required parameter: crate_id"}), 400
+    if check_ro_crate_exists(crate_id):
+        logging.info("RO-Crate exists")
+    else:
+        logging.info("RO-Crate does not exist")
+        raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
+
+    if check_validation_exists(crate_id):
+        logging.info("Validation result exists")
+    else:
+        logging.info("Validation does not exist")
+        raise InvalidAPIUsage(f"No validation result yet for RO-Crate: {crate_id}", 400)
 
     return return_ro_crate_validation(crate_id), 200

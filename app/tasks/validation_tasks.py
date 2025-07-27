@@ -18,7 +18,8 @@ from app.utils.minio_utils import (
     update_validation_status_in_minio,
     get_validation_status_from_minio,
     get_minio_client_and_bucket,
-    find_rocrate_object_on_minio
+    find_rocrate_object_on_minio,
+    find_validation_object_on_minio
 )
 from app.utils.webhook_utils import send_webhook_notification
 from app.utils.file_utils import build_metadata_only_rocrate
@@ -80,7 +81,10 @@ def process_validation_task_by_id(
     finally:
         # Clean up the temporary file if it was created:
         if file_path and os.path.exists(file_path):
-            os.remove(file_path)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
 
 
 @celery.task
@@ -195,6 +199,25 @@ def check_ro_crate_exists(
 
     minio_client, bucket_name = get_minio_client_and_bucket()
     if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=''):
+        return True
+    else:
+        return False
+
+
+def check_validation_exists(
+        crate_id: str,
+) -> bool:
+    """
+    Checks for the existence of a validation result using the provided Crate ID.
+
+    :param crate_id: The ID of the RO-Crate that needs validating
+    :return: Boolean indicating existence
+    """
+
+    logging.info(f"Checking for existence of RO-Crate {crate_id}")
+
+    minio_client, bucket_name = get_minio_client_and_bucket()
+    if find_validation_object_on_minio(crate_id, minio_client, bucket_name, storage_path=''):
         return True
     else:
         return False
