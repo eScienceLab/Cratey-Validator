@@ -20,28 +20,48 @@ def flask_app():
 
 # Test function: queue_ro_crate_validation_task
 
-def test_queue_task_success(flask_app):
-    with patch("app.services.validation_service.process_validation_task_by_id.delay") as mock_delay:
-        response, status_code = queue_ro_crate_validation_task("crate123", "profileA", "http://webhook.com")
+@patch("app.services.validation_service.process_validation_task_by_id.delay")
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=True)
+def test_queue_task_success(
+    mock_exists,
+    mock_delay,
+    flask_app
+):
+    response, status_code = queue_ro_crate_validation_task("crate123", "profileA", "http://webhook.com")
 
-        mock_delay.assert_called_once_with("crate123", "profileA", "http://webhook.com")
-        assert status_code == 202
-        assert response.json == {"message": "Validation in progress"}
+    mock_exists.assert_called_once_with("crate123")
+    mock_delay.assert_called_once_with("crate123", "profileA", "http://webhook.com")
+    assert status_code == 202
+    assert response.json == {"message": "Validation in progress"}
 
 
-def test_queue_task_missing_crate_id(flask_app):
-    response, status_code = queue_ro_crate_validation_task(None)
+@patch("app.services.validation_service.process_validation_task_by_id.delay")
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=False)
+def test_queue_ro_crate_missing_exception(
+    mock_exists,
+    mock_delay,
+    flask_app
+):
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        queue_ro_crate_validation_task("crate12z", "profileA", "http://webhook.com")
 
-    assert status_code == 400
-    assert response.json == {"error": "Missing required parameter: crate_id"}
+    assert "No RO-Crate with prefix: crate12z" in str(exc_info.value.message)
+    mock_exists.assert_called_once_with("crate12z")
+    mock_delay.assert_not_called()
 
 
-def test_queue_task_exception(flask_app):
-    with patch("app.services.validation_service.process_validation_task_by_id.delay", side_effect=Exception("Celery down")):
-        response, status_code = queue_ro_crate_validation_task("crate123")
+@patch("app.services.validation_service.process_validation_task_by_id.delay", side_effect=Exception("Celery down"))
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=True)
+def test_queue_task_exception(
+    mock_exists,
+    mock_delay,
+    flask_app
+):
+    response, status_code = queue_ro_crate_validation_task("crate123")
 
-        assert status_code == 500
-        assert response.json == {"error": "Celery down"}
+    mock_exists.assert_called_once_with("crate123")
+    assert status_code == 500
+    assert response.json == {"error": "Celery down"}
 
 
 # Test function: queue_ro_crate_metadata_validation_task
