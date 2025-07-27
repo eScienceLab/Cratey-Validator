@@ -16,7 +16,9 @@ from app.celery_worker import celery
 from app.utils.minio_utils import (
     fetch_ro_crate_from_minio,
     update_validation_status_in_minio,
-    get_validation_status_from_minio
+    get_validation_status_from_minio,
+    get_minio_client_and_bucket,
+    find_rocrate_object_on_minio
 )
 from app.utils.webhook_utils import send_webhook_notification
 from app.utils.file_utils import build_metadata_only_rocrate
@@ -179,6 +181,25 @@ def perform_ro_crate_validation(
         return str(e)
 
 
+def check_ro_crate_exists(
+        crate_id: str,
+) -> bool:
+    """
+    Checks for the existence of an RO-Crate using the provided Crate ID.
+
+    :param crate_id: The ID of the RO-Crate that needs validating
+    :return: Boolean indicating existence
+    """
+
+    logging.info(f"Checking for existence of RO-Crate {crate_id}")
+
+    minio_client, bucket_name = get_minio_client_and_bucket()
+    if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=''):
+        return True
+    else:
+        return False
+
+
 def return_ro_crate_validation(
     crate_id: str,
 ) -> dict | str:
@@ -187,7 +208,6 @@ def return_ro_crate_validation(
 
     :param crate_id: The ID of the RO-Crate that has been validated
     :return: The validation result
-    :raises Exception: If an error occurs in the retrieving the validation result
     """
 
     logging.info(f"Fetching validation result for RO-Crate {crate_id}")
