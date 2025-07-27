@@ -119,7 +119,7 @@ def test_get_minio_object_list_unexpected_error():
 @patch("app.utils.minio_utils.get_minio_object_list")
 def test_rocrate_found_as_directory(mock_get_list):
     # Simulate a directory object match
-    obj = DummyObject("my/path/rocrate123", is_dir=True)
+    obj = DummyObject("my/path/rocrate123/", is_dir=True)
     mock_get_list.return_value = [obj]
     minio_client = MagicMock()
 
@@ -171,7 +171,7 @@ def test_storage_path_none(mock_get_list):
 @patch("app.utils.minio_utils.get_minio_object_list")
 def test_storage_path_provided(mock_get_list):
     # Ensures correct rocrate_path is used when storage_path is provided
-    obj = DummyObject("data/rocrate789", is_dir=True)
+    obj = DummyObject("data/rocrate789/", is_dir=True)
     mock_get_list.return_value = [obj]
     minio_client = MagicMock()
 
@@ -219,13 +219,10 @@ def test_validation_object_not_found(mock_get_list):
     # Setup: object name does not match exactly
     mock_get_list.return_value = [DummyObject("some/other/object.txt")]
 
-    from app.utils.minio_utils import find_validation_object_on_minio, InvalidAPIUsage
-    # Execute + Assert
-    with pytest.raises(InvalidAPIUsage) as exc:
-        find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
+    from app.utils.minio_utils import find_validation_object_on_minio
+    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
 
-    assert exc.value.status_code == 400
-    assert "No validation result yet for RO-Crate: rocrate999" in str(exc.value.message)
+    assert result is False
 
 
 @patch("app.utils.minio_utils.get_minio_object_list")
@@ -233,13 +230,10 @@ def test_validation_object_empty_list(mock_get_list):
     # Setup: no objects returned
     mock_get_list.return_value = []
 
-    from app.utils.minio_utils import find_validation_object_on_minio, InvalidAPIUsage
-    # Execute + Assert
-    with pytest.raises(InvalidAPIUsage) as exc:
-        find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
+    from app.utils.minio_utils import find_validation_object_on_minio
+    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
 
-    assert exc.value.status_code == 400
-    assert "No validation result yet for RO-Crate: rocrate999" in str(exc.value.message)
+    assert result is False
 
 
 # Testing function: download_file_from_minio
