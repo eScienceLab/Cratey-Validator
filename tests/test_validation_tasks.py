@@ -16,15 +16,17 @@ from app.utils.minio_utils import InvalidAPIUsage
 
 @mock.patch("app.tasks.validation_tasks.os.remove")
 @mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
 @mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
-def test_process_validation_success(
+def test_process_validation_zipfile_success(
     mock_fetch,
     mock_validate,
     mock_update,
     mock_webhook,
+    mock_isfile,
     mock_exists,
     mock_remove
 ):
@@ -44,8 +46,43 @@ def test_process_validation_success(
     mock_remove.assert_called_once_with("/tmp/crate.zip")
 
 
+@mock.patch("app.tasks.validation_tasks.shutil.rmtree")
+@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=False)
+@mock.patch("app.tasks.validation_tasks.os.path.isdir", return_value=True)
+@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
+@mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
+@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
+@mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
+def test_process_validation_directory_success(
+    mock_fetch,
+    mock_validate,
+    mock_update,
+    mock_webhook,
+    mock_isdir,
+    mock_isfile,
+    mock_exists,
+    mock_rmtree
+):
+    mock_fetch.return_value = "/tmp/crate123/"
+
+    mock_validation_result = mock.Mock()
+    mock_validation_result.has_issues.return_value = False
+    mock_validation_result.to_json.return_value = '{"status": "valid"}'
+    mock_validate.return_value = mock_validation_result
+
+    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+
+    mock_fetch.assert_called_once_with("crate123")
+    mock_validate.assert_called_once_with("/tmp/crate123/", "profileA")
+    mock_update.assert_called_once_with("crate123", '{"status": "valid"}')
+    mock_webhook.assert_called_once_with("https://example.com/hook", '{"status": "valid"}')
+    mock_rmtree.assert_called_once_with("/tmp/crate123/")
+
+
 @mock.patch("app.tasks.validation_tasks.os.remove")
 @mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
@@ -55,6 +92,7 @@ def test_process_validation_fails_with_message(
     mock_validate,
     mock_update,
     mock_webhook,
+    mock_isfile,
     mock_exists,
     mock_remove
 ):
@@ -73,6 +111,7 @@ def test_process_validation_fails_with_message(
 
 @mock.patch("app.tasks.validation_tasks.os.remove")
 @mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation", side_effect=Exception("Unexpected error"))
@@ -82,6 +121,7 @@ def test_process_validation_exception(
     mock_validate,
     mock_update,
     mock_webhook,
+    mock_isfile,
     mock_exists,
     mock_remove
 ):

@@ -130,30 +130,57 @@ def test_queue_metadata_exception(flask_app):
 
 # Test function: get_ro_crate_validation_task
 
-def test_get_validation_success(flask_app):
-    with patch("app.services.validation_service.return_ro_crate_validation") as mock_return:
-        mock_return.return_value = {"status": "valid"}
+@patch("app.services.validation_service.return_ro_crate_validation", return_value={"status": "valid"})
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=True)
+@patch("app.services.validation_service.check_validation_exists", return_value=True)
+def test_get_validation_success(
+    mock_validation,
+    mock_rocrate,
+    mock_return,
+    flask_app
+):
+    response, status = get_ro_crate_validation_task("crate123")
 
-        response, status = get_ro_crate_validation_task("crate123")
-
-        mock_return.assert_called_once_with("crate123")
-        assert status == 200
-        assert response == {"status": "valid"}
-
-
-def test_get_validation_missing_id(flask_app):
-    response, status = get_ro_crate_validation_task(None)
-
-    assert status == 400
-    assert response.json == {"error": "Missing required parameter: crate_id"}
+    mock_return.assert_called_once_with("crate123")
+    mock_rocrate.assert_called_once_with("crate123")
+    mock_validation.assert_called_once_with("crate123")
+    assert status == 200
+    assert response == {"status": "valid"}
 
 
-def test_get_validation_exception(flask_app):
-    with patch("app.services.validation_service.return_ro_crate_validation",
-               side_effect=InvalidAPIUsage("MinIO S3 Error: empty", 500)):
+@patch("app.services.validation_service.return_ro_crate_validation", return_value=None)
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=False)
+@patch("app.services.validation_service.check_validation_exists", return_value=False)
+def test_get_validation_missing_ro_crate(
+    mock_validation,
+    mock_rocrate,
+    mock_return,
+    flask_app
+):
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        get_ro_crate_validation_task("crate123")
 
-        with pytest.raises(InvalidAPIUsage) as exc_info:
-            get_ro_crate_validation_task("crate789")
+    assert exc_info.value.status_code == 400
+    assert "No RO-Crate with prefix: crate123" in str(exc_info.value.message)
+    mock_rocrate.assert_called_once_with("crate123")
+    mock_validation.assert_not_called()
+    mock_return.assert_not_called()
 
-        assert exc_info.value.status_code == 500
-        assert "MinIO S3 Error" in str(exc_info.value.message)
+
+@patch("app.services.validation_service.return_ro_crate_validation", return_value=None)
+@patch("app.services.validation_service.check_ro_crate_exists", return_value=True)
+@patch("app.services.validation_service.check_validation_exists", return_value=False)
+def test_get_validation_missing_validation(
+    mock_validation,
+    mock_rocrate,
+    mock_return,
+    flask_app
+):
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        get_ro_crate_validation_task("crate123")
+
+    assert exc_info.value.status_code == 400
+    assert "No validation result yet for RO-Crate: crate123" in str(exc_info.value.message)
+    mock_rocrate.assert_called_once_with("crate123")
+    mock_validation.assert_called_once_with("crate123")
+    mock_return.assert_not_called()
