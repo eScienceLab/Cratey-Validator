@@ -5,7 +5,8 @@ from app.tasks.validation_tasks import (
     process_validation_task_by_id,
     perform_ro_crate_validation,
     return_ro_crate_validation,
-    process_validation_task_by_metadata
+    process_validation_task_by_metadata,
+    check_ro_crate_exists
 )
 
 from app.utils.minio_utils import InvalidAPIUsage
@@ -319,3 +320,31 @@ def test_return_validation_raises_error(mock_get_status):
 
     assert "MinIO S3 Error" in str(exc_info.value.message)
     mock_get_status.assert_called_once_with("crate789")
+
+
+# Test function: check_ro_crate_exists
+
+@mock.patch("app.tasks.validation_tasks.get_minio_client_and_bucket", return_value=("mock_client", "mock_bucket"))
+@mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio", return_value="crate123")
+def test_ro_crate_exists(
+    mock_find_rocrate,
+    mock_get_client
+):
+    result = check_ro_crate_exists("crate123")
+
+    mock_get_client.assert_called_once()
+    mock_find_rocrate.assert_called_once_with("crate123", "mock_client", "mock_bucket", storage_path='')
+    assert result is True
+
+
+@mock.patch("app.tasks.validation_tasks.get_minio_client_and_bucket", return_value=("mock_client", "mock_bucket"))
+@mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio", return_value=False)
+def test_ro_crate_does_not_exist(
+    mock_find_rocrate,
+    mock_get_client
+):
+    result = check_ro_crate_exists("crate12z")
+
+    mock_get_client.assert_called_once()
+    mock_find_rocrate.assert_called_once_with("crate12z", "mock_client", "mock_bucket", storage_path='')
+    assert result is False
