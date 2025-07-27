@@ -12,8 +12,6 @@ from app.services.validation_service import (
     queue_ro_crate_validation_task,
     queue_ro_crate_metadata_validation_task
 )
-from app.utils.config import InvalidAPIUsage
-
 
 post_routes_bp = APIBlueprint("post_routes", __name__)
 
