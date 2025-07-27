@@ -141,7 +141,7 @@ def test_rocrate_found_as_zip(mock_get_list):
 
 
 @patch("app.utils.minio_utils.get_minio_object_list")
-def test_rocrate_not_found_raises(mock_get_list):
+def test_rocrate_not_found(mock_get_list):
     # Simulate no matching object
     mock_get_list.return_value = [
         DummyObject("something_else"),
@@ -149,12 +149,11 @@ def test_rocrate_not_found_raises(mock_get_list):
     ]
     minio_client = MagicMock()
 
-    from app.utils.minio_utils import find_rocrate_object_on_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        find_rocrate_object_on_minio("rocrate123", minio_client, "bucket")
+    from app.utils.minio_utils import find_rocrate_object_on_minio
+    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket")
 
-    assert exc.value.status_code == 400
-    assert "No RO-Crate with prefix" in str(exc.value.message)
+    mock_get_list.assert_called_once()
+    assert not result
 
 
 @patch("app.utils.minio_utils.get_minio_object_list")
