@@ -216,7 +216,7 @@ def find_validation_object_on_minio(rocrate_id: str, minio_client, bucket_name: 
         return return_object
 
 
-def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str, storage_path: str = None) -> object:
+def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str, storage_path: str = None) -> object | bool:
     """
     Checks that the requested object exists on the MinIO instance.
 
@@ -227,7 +227,7 @@ def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str
     :param storage_path: string containing the path within which the ro-crate should be
     :param minio_client: minio object
     :param bucket_name: string containing bucket on minio
-    :return return_object: rocrate object we require
+    :return return_object or False: rocrate object we require, or False result
     :raise Exception: If RO-Crate can't be found, 400
     """
 
@@ -249,7 +249,7 @@ def find_rocrate_object_on_minio(rocrate_id: str, minio_client, bucket_name: str
 
     if not return_object:
         logging.error(f"No RO-Crate with prefix: {rocrate_path}")
-        raise InvalidAPIUsage(f"No RO-Crate with prefix: {rocrate_path}", 400)
+        return False
     else:
         return return_object
 
