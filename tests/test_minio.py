@@ -20,33 +20,19 @@ class DummyObject:
         self.is_dir = is_dir
 
 
-# Testing function: get_minio_client_and_bucket
+# Testing function: get_minio_client
 
 def test_get_minio_client_success(monkeypatch):
     # Set required env vars
     monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")
     monkeypatch.setenv("MINIO_ROOT_USER", "admin")
     monkeypatch.setenv("MINIO_ROOT_PASSWORD", "password123")
-    monkeypatch.setenv("MINIO_BUCKET_NAME", "test-bucket")
 
-    from app.utils.minio_utils import get_minio_client_and_bucket
-    client, bucket = get_minio_client_and_bucket()
+    from app.utils.minio_utils import get_minio_client
+    client = get_minio_client()
 
     assert isinstance(client, Minio)
-    assert bucket == "test-bucket"
     assert client._base_url.host == "localhost:9000"
-
-
-def test_get_minio_client_missing_bucket_name(monkeypatch):
-    # Set all except MINIO_BUCKET_NAME
-    monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")
-    monkeypatch.setenv("MINIO_ROOT_USER", "admin")
-    monkeypatch.setenv("MINIO_ROOT_PASSWORD", "password123")
-    monkeypatch.setenv("MINIO_BUCKET_NAME", "")
-
-    from app.utils.minio_utils import get_minio_client_and_bucket
-    with pytest.raises(ValueError, match="MINIO_BUCKET_NAME is not set"):
-        get_minio_client_and_bucket()
 
 
 # Testing function: get_minio_object_list
@@ -296,12 +282,11 @@ def test_download_unexpected_error(mock_logging):
 
 def test_successful_retrieval(mocker, mock_minio_response):
     mock_client = MagicMock()
-    mock_bucket = "test-bucket"
     mock_client.get_object.return_value = mock_minio_response
-    mocker.patch("app.utils.minio_utils.get_minio_client_and_bucket", return_value=(mock_client, mock_bucket))
+    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio
-    result = get_validation_status_from_minio("crate123")
+    result = get_validation_status_from_minio("test_bucket", "crate123")
 
     assert result == {"status": "valid"}
     mock_minio_response.close.assert_called_once()
@@ -310,7 +295,6 @@ def test_successful_retrieval(mocker, mock_minio_response):
 
 def test_s3_error_raised(mocker):
     mock_client = MagicMock()
-    mock_bucket = "test-bucket"
     mock_client.get_object.side_effect = S3Error(
                     code="S3 error",
                     message=None,
@@ -319,22 +303,22 @@ def test_s3_error_raised(mocker):
                     host_id=None,
                     response=None
                 )
-    mocker.patch("app.utils.minio_utils.get_minio_client_and_bucket", return_value=(mock_client, mock_bucket))
+    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("crate123")
+        get_validation_status_from_minio("test_bucket", "crate123")
 
     assert exc.value.status_code == 500
     assert "S3 Error" in str(exc.value.message)
 
 
 def test_value_error_raised(mocker):
-    mocker.patch("app.utils.minio_utils.get_minio_client_and_bucket", side_effect=ValueError("Missing env var"))
+    mocker.patch("app.utils.minio_utils.get_minio_client", side_effect=ValueError("Missing env var"))
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("crate123")
+        get_validation_status_from_minio("test_bucket", "crate123")
 
     assert exc.value.status_code == 500
     assert "Configuration Error" in str(exc.value.message)
@@ -342,13 +326,12 @@ def test_value_error_raised(mocker):
 
 def test_generic_exception_raised(mocker):
     mock_client = MagicMock()
-    mock_bucket = "test-bucket"
     mock_client.get_object.side_effect = Exception("Unexpected failure")
-    mocker.patch("app.utils.minio_utils.get_minio_client_and_bucket", return_value=(mock_client, mock_bucket))
+    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("crate123")
+        get_validation_status_from_minio("test_bucket", "crate123")
 
     assert exc.value.status_code == 500
     assert "Unknown Error" in str(exc.value.message)
@@ -356,16 +339,16 @@ def test_generic_exception_raised(mocker):
 
 # Testing function: update_validation_status_in_minio
 
-@mock.patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@mock.patch("app.utils.minio_utils.get_minio_client")
 def test_update_validation_status_success(mock_get_client):
     mock_minio_client = mock.Mock()
-    mock_get_client.return_value = (mock_minio_client, "test-bucket")
+    mock_get_client.return_value = mock_minio_client
 
     crate_id = "crate123"
     validation_status = json.dumps({"status": "valid", "errors": []})
 
     from app.utils.minio_utils import update_validation_status_in_minio
-    update_validation_status_in_minio(crate_id, validation_status)
+    update_validation_status_in_minio("test_bucket", crate_id, validation_status)
 
     expected_object_name = f"{crate_id}_validation/validation_status.txt"
     expected_data = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
@@ -381,7 +364,7 @@ def test_update_validation_status_success(mock_get_client):
     actual_data_stream = args[2] if len(args) > 2 else kwargs["data"]
     length = args[3] if len(args) > 3 else kwargs["length"]
 
-    assert bucket_name == "test-bucket"
+    assert bucket_name == "test_bucket"
     assert object_name == expected_object_name
     assert isinstance(actual_data_stream, BytesIO)
     actual_data_stream.seek(0)
@@ -390,10 +373,10 @@ def test_update_validation_status_success(mock_get_client):
     assert kwargs["content_type"] == "application/json"
 
 
-@mock.patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@mock.patch("app.utils.minio_utils.get_minio_client")
 def test_update_validation_status_s3_error(mock_get_client):
     mock_minio_client = mock.Mock()
-    mock_get_client.return_value = (mock_minio_client, "test-bucket")
+    mock_get_client.return_value = mock_minio_client
     mock_minio_client.put_object.side_effect = S3Error(
                                 code="S3 error",
                                 message=None,
@@ -405,31 +388,31 @@ def test_update_validation_status_s3_error(mock_get_client):
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "S3 Error" in str(exc.value.message)
 
 
-@mock.patch("app.utils.minio_utils.get_minio_client_and_bucket", side_effect=ValueError("Missing env vars"))
+@mock.patch("app.utils.minio_utils.get_minio_client", side_effect=ValueError("Missing env vars"))
 def test_update_validation_status_value_error(mock_get_client):
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "Configuration Error" in str(exc.value.message)
 
 
-@mock.patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@mock.patch("app.utils.minio_utils.get_minio_client")
 def test_update_validation_status_unexpected_error(mock_get_client):
     mock_minio_client = mock.Mock()
-    mock_get_client.return_value = (mock_minio_client, "test-bucket")
+    mock_get_client.return_value = mock_minio_client
     mock_minio_client.put_object.side_effect = RuntimeError("Unexpected failure")
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "Unknown Error" in str(exc.value.message)
@@ -440,7 +423,7 @@ def test_update_validation_status_unexpected_error(mock_get_client):
 @patch("app.utils.minio_utils.download_file_from_minio")
 @patch("app.utils.minio_utils.get_minio_object_list")
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
-@patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_zip(
     mock_get_client_and_bucket,
     mock_find_object,
@@ -449,7 +432,7 @@ def test_fetch_rocrate_zip(
     tmp_path,
 ):
     # Setup mocks
-    mock_get_client_and_bucket.return_value = ("minio_client", "bucket")
+    mock_get_client_and_bucket.return_value = "minio_client"
     rocrate_obj = DummyObject("some/path/rocrate123.zip", is_dir=False)
     mock_find_object.return_value = rocrate_obj
 
@@ -457,20 +440,20 @@ def test_fetch_rocrate_zip(
 
     with patch("app.utils.minio_utils.tempfile.mkdtemp", return_value=str(tmp_path)):
         # Execute
-        result = fetch_ro_crate_from_minio("rocrate123")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate123")
 
         # Assert
         expected_path = tmp_path / "rocrate123.zip"
         assert result == str(expected_path)
         mock_download.assert_called_once_with(
-            "minio_client", "bucket",
+            "minio_client", "test_bucket",
             "some/path/rocrate123.zip", str(expected_path))
 
 
 @patch("app.utils.minio_utils.download_file_from_minio")
 @patch("app.utils.minio_utils.get_minio_object_list")
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
-@patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_directory(
     mock_get_client_and_bucket,
     mock_find_object,
@@ -479,7 +462,7 @@ def test_fetch_rocrate_directory(
     tmp_path,
 ):
     # Setup mocks
-    mock_get_client_and_bucket.return_value = ("minio_client", "bucket")
+    mock_get_client_and_bucket.return_value = "minio_client"
     rocrate_obj = DummyObject("rocrates/rocrate124", is_dir=True)
     mock_find_object.return_value = rocrate_obj
 
@@ -493,18 +476,18 @@ def test_fetch_rocrate_directory(
         ]
 
         # Execute
-        result = fetch_ro_crate_from_minio("rocrate124")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate124")
 
         # Assert
         expected_root = tmp_path / "rocrate124"
         assert result == str(expected_root)
         mock_download.assert_any_call(
-            "minio_client", "bucket",
+            "minio_client", "test_bucket",
             "rocrates/rocrate124/metadata.json",
             str(expected_root / "metadata.json")
         )
         mock_download.assert_any_call(
-            "minio_client", "bucket",
+            "minio_client", "test_bucket",
             "rocrates/rocrate124/data/file1.txt",
             str(expected_root / "data/file1.txt")
         )
@@ -513,7 +496,7 @@ def test_fetch_rocrate_directory(
 @patch("app.utils.minio_utils.download_file_from_minio")
 @patch("app.utils.minio_utils.get_minio_object_list")
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
-@patch("app.utils.minio_utils.get_minio_client_and_bucket")
+@patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_handles_empty_dir(
     mock_get_client_and_bucket,
     mock_find_object,
@@ -521,7 +504,7 @@ def test_fetch_rocrate_handles_empty_dir(
     mock_download,
     tmp_path,
 ):
-    mock_get_client_and_bucket.return_value = ("minio_client", "bucket")
+    mock_get_client_and_bucket.return_value = "minio_client"
     rocrate_obj = DummyObject("rocrate456", is_dir=True)
     mock_find_object.return_value = rocrate_obj
     mock_get_list.return_value = []
@@ -529,7 +512,7 @@ def test_fetch_rocrate_handles_empty_dir(
     from app.utils.minio_utils import fetch_ro_crate_from_minio
 
     with patch("app.utils.minio_utils.tempfile.mkdtemp", return_value=str(tmp_path)):
-        result = fetch_ro_crate_from_minio("rocrate456")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate456")
 
         expected_root = tmp_path / "rocrate456"
         assert result == str(expected_root)
