@@ -10,7 +10,7 @@ def client():
     return app.test_client()
 
 
-# Test API: /v1/ro_crates/{crate_id}/validation
+# Test POST API: /v1/ro_crates/{crate_id}/validation
 
 def test_validate_by_id_success(client):
     crate_id = "crate-123"
@@ -127,7 +127,7 @@ def test_validate_by_id_missing_root_path(client):
         mock_queue.assert_called_once_with("test_bucket", None, "crate-123", "default", "https://webhook.example.com")
 
 
-# Test API: /v1/ro_crates/validate_metadata
+# Test POST API: /v1/ro_crates/validate_metadata
 
 def test_validate_metadata_with_all_fields(client: FlaskClient):
     """
@@ -235,3 +235,60 @@ def test_validate_metadata_emptydict_crate_json(client: FlaskClient):
     response = client.post("/v1/ro_crates/validate_metadata", json=test_data)
     assert response.status_code == 422
     assert "Required parameter crate_json is empty" in response.get_data(as_text=True)
+
+
+# Test GET API: /v1/ro_crates/{crate_id}/validation
+
+def test_get_validation_by_id_success(client):
+    crate_id = "crate-123"
+    payload = {
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path"
+    }
+
+    with patch("app.ro_crates.routes.get_routes.get_ro_crate_validation_task") as mock_get:
+        mock_get.return_value = ({"status": "valid"}, 200)
+
+        response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+        assert response.status_code == 200
+        assert response.json == {"status": "valid"}
+        mock_get.assert_called_once_with("test_bucket", "crate-123", "base_path")
+
+
+def test_get_validation_by_id_fails_missing_crate_id(client):
+    payload = {
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path"
+    }
+
+    response = client.get("/v1/ro_crates//validation", json=payload)
+
+    assert response.status_code == 404
+
+
+def test_get_validation_by_id_fails_missing_minio_bucket(client):
+    crate_id = "crate-123"
+    payload = {
+        "root_path": "base_path"
+    }
+
+    response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_get_validation_by_id_missing_root_path(client):
+    crate_id = "crate-123"
+    payload = {
+        "minio_bucket": "test_bucket",
+    }
+
+    with patch("app.ro_crates.routes.get_routes.get_ro_crate_validation_task") as mock_get:
+        mock_get.return_value = ({"message": "Validation in progress"}, 202)
+
+        response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+        assert response.status_code == 202
+        assert response.json == {"message": "Validation in progress"}
+        mock_get.assert_called_once_with("test_bucket", "crate-123", None)
