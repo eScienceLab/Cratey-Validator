@@ -108,7 +108,7 @@ def update_validation_status_in_minio(minio_bucket: str, crate_id: str, validati
     )
 
 
-def get_validation_status_from_minio(minio_bucket: str, crate_id: str) -> dict:
+def get_validation_status_from_minio(minio_bucket: str, crate_id: str, root_path: str) -> dict:
     """
     Checks for the existence of a validation report for the given RO-Crate in the MinIO bucket.
     Returns validation message if it exists, or notification that it is missing if not.
@@ -120,7 +120,10 @@ def get_validation_status_from_minio(minio_bucket: str, crate_id: str) -> dict:
     """
 
     # The object in MinIO is <crate_id>_validation/validation_status.txt
-    object_name = f"{crate_id}_validation/validation_status.txt"
+    if root_path:
+        object_name = f"{root_path}/{crate_id}_validation/validation_status.txt"
+    else:
+        object_name = f"{crate_id}_validation/validation_status.txt"
 
     logging.info(f"Getting object {object_name}")
 
@@ -182,7 +185,7 @@ def download_file_from_minio(minio_client: object, minio_bucket: str, object_pat
         raise InvalidAPIUsage(f"Unknown Error: {e}", 500)
 
 
-def find_validation_object_on_minio(rocrate_id: str, minio_client, minio_bucket: str, storage_path: str = None) -> object:
+def find_validation_object_on_minio(rocrate_id: str, minio_client, minio_bucket: str, storage_path: str) -> object:
     """
     Checks that the requested object exists on the MinIO instance.
 
@@ -219,7 +222,7 @@ def find_validation_object_on_minio(rocrate_id: str, minio_client, minio_bucket:
         return return_object
 
 
-def find_rocrate_object_on_minio(rocrate_id: str, minio_client, minio_bucket: str, storage_path: str = None) -> object | bool:
+def find_rocrate_object_on_minio(rocrate_id: str, minio_client, minio_bucket: str, storage_path: str) -> object | bool:
     """
     Checks that the requested object exists on the MinIO instance.
 
