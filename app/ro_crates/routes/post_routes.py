@@ -17,6 +17,8 @@ post_routes_bp = APIBlueprint("post_routes", __name__)
 
 
 class ValidateCrate(Schema):
+    minio_bucket = String(required=True)
+    root_path = String(required=False)
     profile_name = String(required=False)
     webhook_url = String(required=False)
 
@@ -36,6 +38,8 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     - **crate_id**: The RO-Crate ID. _Required_.
 
     Request Body Parameters:
+    - **minio_bucket**: The MinIO bucket containing the RO-Crate. _Required_
+    - **root_path**: The root path containing the RO-Crate. _Optional_
     - **profile_name**: The profile name for validation. _Optional_.
     - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
 
@@ -45,6 +49,13 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     Raises:
     - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
+
+    minio_bucket = json_data["minio_bucket"]
+
+    if "root_path" in json_data:
+        root_path = json_data["root_path"]
+    else:
+        root_path = None
 
     if "webhook_url" in json_data:
         webhook_url = json_data["webhook_url"]
@@ -56,7 +67,7 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     else:
         profile_name = None
 
-    return queue_ro_crate_validation_task(crate_id, profile_name, webhook_url)
+    return queue_ro_crate_validation_task(minio_bucket, crate_id, root_path, profile_name, webhook_url)
 
 
 @post_routes_bp.post("/validate_metadata")

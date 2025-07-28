@@ -15,6 +15,8 @@ def client():
 def test_validate_by_id_success(client):
     crate_id = "crate-123"
     payload = {
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path",
         "webhook_url": "https://webhook.example.com",
         "profile_name": "default"
     }
@@ -26,12 +28,15 @@ def test_validate_by_id_success(client):
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("crate-123", "default", "https://webhook.example.com")
+        mock_queue.assert_called_once_with("test_bucket", "crate-123", "base_path", "default", "https://webhook.example.com")
 
 
-def test_validate_by_id_missing_crate_id(client):
+def test_validate_by_id_fails_missing_crate_id(client):
     payload = {
-        "webhook_url": "https://webhook.example.com"
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path",
+        "webhook_url": "https://webhook.example.com",
+        "profile_name": "default"
     }
 
     response = client.post("/v1/ro_crates//validation", json=payload)
@@ -39,9 +44,23 @@ def test_validate_by_id_missing_crate_id(client):
     assert response.status_code == 404
 
 
-def test_validate_by_id_missing_profile_name_and_webhook_url(client):
+def test_validate_by_id_fails_missing_minio_bucket(client):
     crate_id = "crate-123"
     payload = {
+        "root_path": "base_path",
+        "webhook_url": "https://webhook.example.com",
+        "profile_name": "default"
+    }
+
+    response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_validate_by_id_missing_root_path_and_profile_name_and_webhook_url(client):
+    crate_id = "crate-123"
+    payload = {
+        "minio_bucket": "test_bucket",
     }
 
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
@@ -51,12 +70,14 @@ def test_validate_by_id_missing_profile_name_and_webhook_url(client):
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("crate-123", None, None)
+        mock_queue.assert_called_once_with("test_bucket", "crate-123", None, None, None)
 
 
 def test_validate_by_id_missing_profile_name(client):
     crate_id = "crate-123"
     payload = {
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path",
         "webhook_url": "https://webhook.example.com"
     }
 
@@ -67,12 +88,14 @@ def test_validate_by_id_missing_profile_name(client):
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("crate-123", None, "https://webhook.example.com")
+        mock_queue.assert_called_once_with("test_bucket", "crate-123", "base_path", None, "https://webhook.example.com")
 
 
 def test_validate_by_id_missing_webhook_url(client):
     crate_id = "crate-123"
     payload = {
+        "minio_bucket": "test_bucket",
+        "root_path": "base_path",
         "profile_name": "default"
     }
 
@@ -83,7 +106,25 @@ def test_validate_by_id_missing_webhook_url(client):
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("crate-123", "default", None)
+        mock_queue.assert_called_once_with("test_bucket", "crate-123", "base_path", "default", None)
+
+
+def test_validate_by_id_missing_root_path(client):
+    crate_id = "crate-123"
+    payload = {
+        "minio_bucket": "test_bucket",
+        "profile_name": "default",
+        "webhook_url": "https://webhook.example.com"
+    }
+
+    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
+        mock_queue.return_value = ({"message": "Validation in progress"}, 202)
+
+        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+
+        assert response.status_code == 202
+        assert response.json == {"message": "Validation in progress"}
+        mock_queue.assert_called_once_with("test_bucket", None, "crate-123", "default", "https://webhook.example.com")
 
 
 # Test API: /v1/ro_crates/validate_metadata
