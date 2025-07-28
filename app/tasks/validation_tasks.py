@@ -17,7 +17,7 @@ from app.utils.minio_utils import (
     fetch_ro_crate_from_minio,
     update_validation_status_in_minio,
     get_validation_status_from_minio,
-    get_minio_client_and_bucket,
+    get_minio_client,
     find_rocrate_object_on_minio,
     find_validation_object_on_minio
 )
@@ -201,7 +201,7 @@ def check_ro_crate_exists(
 
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
-    minio_client, _ = get_minio_client_and_bucket()
+    minio_client = get_minio_client()
     if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
         return True
     else:
@@ -224,7 +224,7 @@ def check_validation_exists(
 
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
-    minio_client, _ = get_minio_client_and_bucket()
+    minio_client = get_minio_client()
     if find_validation_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
         return True
     else:
