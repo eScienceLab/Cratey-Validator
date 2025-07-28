@@ -139,11 +139,11 @@ def test_get_validation_success(
     mock_return,
     flask_app
 ):
-    response, status = get_ro_crate_validation_task("crate123")
+    response, status = get_ro_crate_validation_task("test_bucket", "crate123", "base_path")
 
-    mock_return.assert_called_once_with("crate123")
-    mock_rocrate.assert_called_once_with("crate123")
-    mock_validation.assert_called_once_with("crate123")
+    mock_return.assert_called_once_with("test_bucket", "crate123", "base_path")
+    mock_rocrate.assert_called_once_with("test_bucket", "crate123", "base_path")
+    mock_validation.assert_called_once_with("test_bucket", "crate123", "base_path")
     assert status == 200
     assert response == {"status": "valid"}
 
@@ -158,11 +158,11 @@ def test_get_validation_missing_ro_crate(
     flask_app
 ):
     with pytest.raises(InvalidAPIUsage) as exc_info:
-        get_ro_crate_validation_task("crate123")
+        get_ro_crate_validation_task("test_bucket", "crate123", "base_path")
 
     assert exc_info.value.status_code == 400
     assert "No RO-Crate with prefix: crate123" in str(exc_info.value.message)
-    mock_rocrate.assert_called_once_with("crate123")
+    mock_rocrate.assert_called_once_with("test_bucket", "crate123", "base_path")
     mock_validation.assert_not_called()
     mock_return.assert_not_called()
 
@@ -177,10 +177,10 @@ def test_get_validation_missing_validation(
     flask_app
 ):
     with pytest.raises(InvalidAPIUsage) as exc_info:
-        get_ro_crate_validation_task("crate123")
+        get_ro_crate_validation_task("test_bucket", "crate123", "base_path")
 
     assert exc_info.value.status_code == 400
     assert "No validation result yet for RO-Crate: crate123" in str(exc_info.value.message)
-    mock_rocrate.assert_called_once_with("crate123")
-    mock_validation.assert_called_once_with("crate123")
+    mock_rocrate.assert_called_once_with("test_bucket", "crate123", "base_path")
+    mock_validation.assert_called_once_with("test_bucket", "crate123", "base_path")
     mock_return.assert_not_called()
