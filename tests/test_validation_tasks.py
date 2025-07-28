@@ -334,10 +334,10 @@ def test_return_validation_returns_dict(mock_get_status):
     # Simulate dict result
     mock_get_status.return_value = {"status": "passed", "errors": []}
 
-    result = return_ro_crate_validation("crate123")
+    result = return_ro_crate_validation("test_bucket", "crate123", None)
     assert isinstance(result, dict)
     assert result["status"] == "passed"
-    mock_get_status.assert_called_once_with("crate123")
+    mock_get_status.assert_called_once_with("test_bucket", "crate123", None)
 
 
 @mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
@@ -345,10 +345,10 @@ def test_return_validation_returns_string(mock_get_status):
     # Simulate string result
     mock_get_status.return_value = "Validation result: OK"
 
-    result = return_ro_crate_validation("crate456")
+    result = return_ro_crate_validation("test_bucket", "crate456", None)
     assert isinstance(result, str)
     assert "OK" in result
-    mock_get_status.assert_called_once_with("crate456")
+    mock_get_status.assert_called_once_with("test_bucket", "crate456", None)
 
 
 @mock.patch("app.tasks.validation_tasks.get_validation_status_from_minio")
@@ -357,10 +357,10 @@ def test_return_validation_raises_error(mock_get_status):
     mock_get_status.side_effect = InvalidAPIUsage("MinIO S3 Error: empty", 500)
 
     with pytest.raises(InvalidAPIUsage) as exc_info:
-        return_ro_crate_validation("crate789")
+        return_ro_crate_validation("test_bucket", "crate789", None)
 
     assert "MinIO S3 Error" in str(exc_info.value.message)
-    mock_get_status.assert_called_once_with("crate789")
+    mock_get_status.assert_called_once_with("test_bucket", "crate789", None)
 
 
 # Test function: check_ro_crate_exists
