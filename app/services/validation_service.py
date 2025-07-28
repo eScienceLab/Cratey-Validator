@@ -104,7 +104,9 @@ def get_ro_crate_validation_task(
     """
     Retrieves an RO-Crate validation result.
 
+    :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to validate.
+    :param root_path: The root path containing the RO-Crate.
     :return: A tuple containing a JSON response and an HTTP status code.
     :raises Exception: If an error occurs whilst retreiving validation result
     """

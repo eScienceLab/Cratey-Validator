@@ -186,45 +186,55 @@ def perform_ro_crate_validation(
 
 
 def check_ro_crate_exists(
+        bucket_name: str,
         crate_id: str,
+        root_path: str = None,
 ) -> bool:
     """
     Checks for the existence of an RO-Crate using the provided Crate ID.
 
-    :param crate_id: The ID of the RO-Crate that needs validating
+    :param minio_bucket: The MinIO bucket containing the RO-Crate.
+    :param crate_id: The ID of the RO-Crate to validate.
+    :param root_path: The root path containing the RO-Crate.
     :return: Boolean indicating existence
     """
 
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
-    minio_client, bucket_name = get_minio_client_and_bucket()
-    if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=''):
+    minio_client, _ = get_minio_client_and_bucket()
+    if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
         return True
     else:
         return False
 
 
 def check_validation_exists(
+        bucket_name: str,
         crate_id: str,
+        root_path: str = None,
 ) -> bool:
     """
     Checks for the existence of a validation result using the provided Crate ID.
 
-    :param crate_id: The ID of the RO-Crate that needs validating
+    :param minio_bucket: The MinIO bucket containing the RO-Crate.
+    :param crate_id: The ID of the RO-Crate to validate.
+    :param root_path: The root path containing the RO-Crate.
     :return: Boolean indicating existence
     """
 
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
-    minio_client, bucket_name = get_minio_client_and_bucket()
-    if find_validation_object_on_minio(crate_id, minio_client, bucket_name, storage_path=''):
+    minio_client, _ = get_minio_client_and_bucket()
+    if find_validation_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
         return True
     else:
         return False
 
 
 def return_ro_crate_validation(
-    crate_id: str,
+        bucket_name: str,
+        crate_id: str,
+        root_path: str = None,
 ) -> dict | str:
     """
     Retrieves the validation result for an RO-Crate using the provided Crate ID.
@@ -235,4 +245,4 @@ def return_ro_crate_validation(
 
     logging.info(f"Fetching validation result for RO-Crate {crate_id}")
 
-    return get_validation_status_from_minio(crate_id)
+    return get_validation_status_from_minio(bucket_name, crate_id, root_path)
