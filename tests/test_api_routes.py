@@ -124,7 +124,7 @@ def test_validate_by_id_missing_root_path(client):
 
         assert response.status_code == 202
         assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("test_bucket", None, "crate-123", "default", "https://webhook.example.com")
+        mock_queue.assert_called_once_with("test_bucket", "crate-123", None, "default", "https://webhook.example.com")
 
 
 # Test POST API: /v1/ro_crates/validate_metadata
