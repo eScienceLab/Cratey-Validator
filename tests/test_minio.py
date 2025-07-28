@@ -122,7 +122,7 @@ def test_rocrate_found_as_zip(mock_get_list):
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket")
+    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", None)
     assert result == obj
 
 
@@ -136,7 +136,7 @@ def test_rocrate_not_found(mock_get_list):
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket")
+    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", None)
 
     mock_get_list.assert_called_once()
     assert not result
@@ -150,7 +150,7 @@ def test_storage_path_none(mock_get_list):
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate456", minio_client, "bucket")
+    result = find_rocrate_object_on_minio("rocrate456", minio_client, "bucket", None)
     assert result == obj
 
 
@@ -193,7 +193,7 @@ def test_validation_object_found_without_storage_path(mock_get_list):
 
     from app.utils.minio_utils import find_validation_object_on_minio
     # Execute
-    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket")
+    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket", None)
 
     # Assert
     assert result == obj
@@ -206,7 +206,7 @@ def test_validation_object_not_found(mock_get_list):
     mock_get_list.return_value = [DummyObject("some/other/object.txt")]
 
     from app.utils.minio_utils import find_validation_object_on_minio
-    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
+    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket", None)
 
     assert result is False
 
@@ -217,7 +217,7 @@ def test_validation_object_empty_list(mock_get_list):
     mock_get_list.return_value = []
 
     from app.utils.minio_utils import find_validation_object_on_minio
-    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket")
+    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket", None)
 
     assert result is False
 
@@ -286,7 +286,7 @@ def test_successful_retrieval(mocker, mock_minio_response):
     mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio
-    result = get_validation_status_from_minio("test_bucket", "crate123")
+    result = get_validation_status_from_minio("test_bucket", "crate123", None)
 
     assert result == {"status": "valid"}
     mock_minio_response.close.assert_called_once()
@@ -307,7 +307,7 @@ def test_s3_error_raised(mocker):
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123")
+        get_validation_status_from_minio("test_bucket", "crate123", None)
 
     assert exc.value.status_code == 500
     assert "S3 Error" in str(exc.value.message)
@@ -318,7 +318,7 @@ def test_value_error_raised(mocker):
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123")
+        get_validation_status_from_minio("test_bucket", "crate123", None)
 
     assert exc.value.status_code == 500
     assert "Configuration Error" in str(exc.value.message)
@@ -331,7 +331,7 @@ def test_generic_exception_raised(mocker):
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123")
+        get_validation_status_from_minio("test_bucket", "crate123", None)
 
     assert exc.value.status_code == 500
     assert "Unknown Error" in str(exc.value.message)

@@ -188,7 +188,7 @@ def perform_ro_crate_validation(
 def check_ro_crate_exists(
         bucket_name: str,
         crate_id: str,
-        root_path: str = None,
+        root_path: str,
 ) -> bool:
     """
     Checks for the existence of an RO-Crate using the provided Crate ID.
@@ -211,7 +211,7 @@ def check_ro_crate_exists(
 def check_validation_exists(
         bucket_name: str,
         crate_id: str,
-        root_path: str = None,
+        root_path: str,
 ) -> bool:
     """
     Checks for the existence of a validation result using the provided Crate ID.
@@ -234,7 +234,7 @@ def check_validation_exists(
 def return_ro_crate_validation(
         bucket_name: str,
         crate_id: str,
-        root_path: str = None,
+        root_path: str,
 ) -> dict | str:
     """
     Retrieves the validation result for an RO-Crate using the provided Crate ID.
