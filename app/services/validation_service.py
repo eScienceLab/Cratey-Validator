@@ -24,12 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 def queue_ro_crate_validation_task(
-    crate_id, profile_name=None, webhook_url=None
+    minio_bucket, crate_id, root_path=None, profile_name=None, webhook_url=None
 ) -> tuple[Response, int]:
     """
     Queues an RO-Crate for validation with Celery.
 
+    :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to validate.
+    :param root_path: The root path containing the RO-Crate.
     :param profile_name: The profile to validate against.
     :param webhook_url: The URL to POST the validation results to.
     :return: A tuple containing a JSON response and an HTTP status code.
@@ -37,15 +39,16 @@ def queue_ro_crate_validation_task(
     """
 
     logging.info(f"Processing: {crate_id}, {profile_name}, {webhook_url}")
+    logging.info(f"Minio Bucket: {minio_bucket}; Root path: {root_path}")
 
-    if check_ro_crate_exists(crate_id):
+    if check_ro_crate_exists(minio_bucket, crate_id, root_path):
         logging.info("RO-Crate exists")
     else:
         logging.info("RO-Crate does not exist")
         raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
 
     try:
-        process_validation_task_by_id.delay(crate_id, profile_name, webhook_url)
+        process_validation_task_by_id.delay(minio_bucket, crate_id, root_path, profile_name, webhook_url)
         return jsonify({"message": "Validation in progress"}), 202
 
     except Exception as e:

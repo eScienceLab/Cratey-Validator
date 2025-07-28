@@ -27,10 +27,10 @@ def test_queue_task_success(
     mock_delay,
     flask_app
 ):
-    response, status_code = queue_ro_crate_validation_task("crate123", "profileA", "http://webhook.com")
+    response, status_code = queue_ro_crate_validation_task("test_bucket", "crate123", "base_path", "profileA", "http://webhook.com")
 
-    mock_exists.assert_called_once_with("crate123")
-    mock_delay.assert_called_once_with("crate123", "profileA", "http://webhook.com")
+    mock_exists.assert_called_once_with("test_bucket", "crate123", "base_path")
+    mock_delay.assert_called_once_with("test_bucket", "crate123", "base_path", "profileA", "http://webhook.com")
     assert status_code == 202
     assert response.json == {"message": "Validation in progress"}
 
@@ -43,10 +43,10 @@ def test_queue_ro_crate_missing_exception(
     flask_app
 ):
     with pytest.raises(InvalidAPIUsage) as exc_info:
-        queue_ro_crate_validation_task("crate12z", "profileA", "http://webhook.com")
+        queue_ro_crate_validation_task("test_bucket", "crate12z", "base_path", "profileA", "http://webhook.com")
 
     assert "No RO-Crate with prefix: crate12z" in str(exc_info.value.message)
-    mock_exists.assert_called_once_with("crate12z")
+    mock_exists.assert_called_once_with("test_bucket", "crate12z", "base_path")
     mock_delay.assert_not_called()
 
 
@@ -57,9 +57,9 @@ def test_queue_task_exception(
     mock_delay,
     flask_app
 ):
-    response, status_code = queue_ro_crate_validation_task("crate123")
+    response, status_code = queue_ro_crate_validation_task("test_bucket", "crate123", None)
 
-    mock_exists.assert_called_once_with("crate123")
+    mock_exists.assert_called_once_with("test_bucket", "crate123", None)
     assert status_code == 500
     assert response.json == {"error": "Celery down"}
 
