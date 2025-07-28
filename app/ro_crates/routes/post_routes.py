@@ -32,7 +32,10 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
 
-    Parameters:
+    Path Parameters:
+    - **crate_id**: The RO-Crate ID. _Required_.
+
+    Request Body Parameters:
     - **profile_name**: The profile name for validation. _Optional_.
     - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
 
@@ -62,7 +65,7 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate JSON file uploaded to the Service.
 
-    Parameters:
+    Request Body Parameters:
     - **crate_json**: The RO-Crate JSON-LD, as a string. _Required_
     - **profile_name**: The profile name for validation. _Optional_.
 

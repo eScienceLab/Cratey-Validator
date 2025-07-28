@@ -17,6 +17,9 @@ def get_ro_crate_validation_by_id(crate_id) -> tuple[Response, int]:
     """
     Endpoint to obtain an RO-Crate validation result using its ID from MinIO.
 
+    Path Parameters:
+    - **crate_id**: The RO-Crate ID. _Required_.
+
     Returns:
     - A tuple containing the validation result and an HTTP status code.
 
