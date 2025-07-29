@@ -336,3 +336,121 @@ def test_ignore_rocrates_not_on_basepath():
     # Assertions
     assert response.status_code == 400
     assert response_result == "No RO-Crate with prefix: ro_crate_4"
+
+
+def test_zipped_rocrate_in_subdirectory_validation():
+    ro_crate = "ro_crate_4"
+    subdir_path = "project_a"
+    url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    # The API expects the JSON to be passed as a string
+    payload = {
+        "minio_bucket" : "ro-crates",
+        "root_path" : subdir_path
+    }
+
+    # POST action and tests
+    response = requests.post(url_post, json=payload, headers=headers)
+    response_result = response.json()['message']
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    # Assertions
+    assert response.status_code == 202
+    assert response_result == "Validation in progress"
+
+    # wait for ro-crate to be validated
+    time.sleep(10)
+
+    # GET action and tests
+    response = requests.get(url_get, json=payload, headers=headers)
+    response_result = response.json()
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    start_time = time.time()
+    while response.status_code == 400:
+        time.sleep(10)
+        # GET action and tests
+        response = requests.get(url_get, json=payload, headers=headers)
+        response_result = response.json()
+        # Print response for debugging
+        print("Status Code:", response.status_code)
+        print("Response JSON:", response_result)
+
+        elapsed = time.time() - start_time
+        if elapsed > 60:
+            print("60 seconds passed. Exiting loop")
+            break
+
+    # Assertions
+    assert response.status_code == 200
+    assert response_result["passed"] is False
+
+
+def test_directory_rocrate_in_subdirectory_validation():
+    ro_crate = "ro_crate_5"
+    subdir_path = "project_a"
+    url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    # The API expects the JSON to be passed as a string
+    payload = {
+        "minio_bucket" : "ro-crates",
+        "root_path" : subdir_path
+    }
+
+    # POST action and tests
+    response = requests.post(url_post, json=payload, headers=headers)
+    response_result = response.json()['message']
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    # Assertions
+    assert response.status_code == 202
+    assert response_result == "Validation in progress"
+
+    # wait for ro-crate to be validated
+    time.sleep(10)
+
+    # GET action and tests
+    response = requests.get(url_get, json=payload, headers=headers)
+    response_result = response.json()
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    start_time = time.time()
+    while response.status_code == 400:
+        time.sleep(10)
+        # GET action and tests
+        response = requests.get(url_get, json=payload, headers=headers)
+        response_result = response.json()
+        # Print response for debugging
+        print("Status Code:", response.status_code)
+        print("Response JSON:", response_result)
+
+        elapsed = time.time() - start_time
+        if elapsed > 60:
+            print("60 seconds passed. Exiting loop")
+            break
+
+    # Assertions
+    assert response.status_code == 200
+    assert response_result["passed"] is False
