@@ -4,11 +4,17 @@ import time
 import requests
 import json
 import os
+import docker
 from minio import Minio
 
 
+@pytest.fixture(scope="session")
+def docker_client():
+    return docker.from_env()
+
+
 @pytest.fixture(scope="session", autouse=True)
-def docker_compose():
+def docker_compose(docker_client):
     """Start Docker Compose before tests, shut down after."""
     print("Starting Docker Compose...")
     subprocess.run(
@@ -20,6 +26,13 @@ def docker_compose():
     load_test_data_into_minio()
 
     yield  # Run the tests
+
+    for container in docker_client.containers.list():
+        if "cratey-validator" in container.name:
+            logs = container.logs().decode("utf-8")
+
+            print(f"\n======= Logs from {container.name} container =======")
+            print(logs)
 
     print("Stopping Docker Compose...")
     subprocess.run(["docker", "compose", "down"], check=True)
