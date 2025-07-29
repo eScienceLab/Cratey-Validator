@@ -235,6 +235,21 @@ def test_zipped_rocrate_validation():
     print("Status Code:", response.status_code)
     print("Response JSON:", response_result)
 
+    start_time = time.time()
+    while response.status_code == 400:
+        time.sleep(10)
+        # GET action and tests
+        response = requests.get(url_get, json=payload, headers=headers)
+        response_result = response.json()
+        # Print response for debugging
+        print("Status Code:", response.status_code)
+        print("Response JSON:", response_result)
+
+        elapsed = time.time() - start_time
+        if elapsed > 60:
+            print("60 seconds passed. Exiting loop")
+            break
+
     # Assertions
     assert response.status_code == 200
     assert response_result["passed"] is False
@@ -276,6 +291,21 @@ def test_directory_rocrate_validation():
     # Print response for debugging
     print("Status Code:", response.status_code)
     print("Response JSON:", response_result)
+
+    start_time = time.time()
+    while response.status_code == 400:
+        time.sleep(10)
+        # GET action and tests
+        response = requests.get(url_get, json=payload, headers=headers)
+        response_result = response.json()
+        # Print response for debugging
+        print("Status Code:", response.status_code)
+        print("Response JSON:", response_result)
+
+        elapsed = time.time() - start_time
+        if elapsed > 60:
+            print("60 seconds passed. Exiting loop")
+            break
 
     # Assertions
     assert response.status_code == 200
