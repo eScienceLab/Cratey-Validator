@@ -374,7 +374,7 @@ def test_ro_crate_exists(
     result = check_ro_crate_exists("test_bucket", "crate123", "base_path")
 
     mock_get_client.assert_called_once()
-    mock_find_rocrate.assert_called_once_with("crate123", "mock_client", "test_bucket", storage_path="base_path")
+    mock_find_rocrate.assert_called_once_with("crate123", "mock_client", "test_bucket", "base_path")
     assert result is True
 
 
@@ -387,7 +387,7 @@ def test_ro_crate_does_not_exist(
     result = check_ro_crate_exists("test_bucket", "crate12z", "base_path")
 
     mock_get_client.assert_called_once()
-    mock_find_rocrate.assert_called_once_with("crate12z", "mock_client", "test_bucket", storage_path="base_path")
+    mock_find_rocrate.assert_called_once_with("crate12z", "mock_client", "test_bucket", "base_path")
     assert result is False
 
 
@@ -402,7 +402,7 @@ def test_validation_exists(
     result = check_validation_exists("test_bucket", "crate123", "base_path")
 
     mock_get_client.assert_called_once()
-    mock_find_validation.assert_called_once_with("crate123", "mock_client", "test_bucket", storage_path="base_path")
+    mock_find_validation.assert_called_once_with("crate123", "mock_client", "test_bucket", "base_path")
     assert result is True
 
 
@@ -415,5 +415,5 @@ def test_validation_does_not_exist(
     result = check_validation_exists("test_bucket", "crate12z", "base_path")
 
     mock_get_client.assert_called_once()
-    mock_find_validation.assert_called_once_with("crate12z", "mock_client", "test_bucket", storage_path="base_path")
+    mock_find_validation.assert_called_once_with("crate12z", "mock_client", "test_bucket", "base_path")
     assert result is False
