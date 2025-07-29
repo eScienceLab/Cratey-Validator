@@ -28,7 +28,7 @@ jobs:
           docker compose -f docker-compose-develop.yml build 
 
       - name: Spin Up Docker Compose and Run Tests
-        run: pytest tests/test_integration.py -v
+        run: pytest -s -v tests/test_integration.py
 
       - name: Ensure that Docker Compose is Shutdown
         if: always()
