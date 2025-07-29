@@ -110,7 +110,7 @@ def test_rocrate_found_as_directory(mock_get_list):
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", storage_path="my/path")
+    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", root_path="my/path")
     assert result == obj
 
 
@@ -162,7 +162,7 @@ def test_storage_path_provided(mock_get_list):
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate789", minio_client, "bucket", storage_path="data")
+    result = find_rocrate_object_on_minio("rocrate789", minio_client, "bucket", root_path="data")
     assert result == obj
 
 
@@ -177,7 +177,7 @@ def test_validation_object_found_with_storage_path(mock_get_list):
 
     from app.utils.minio_utils import find_validation_object_on_minio
     # Execute
-    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket", storage_path="my/storage")
+    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket", root_path="my/storage")
 
     # Assert
     assert result == obj
@@ -425,14 +425,14 @@ def test_update_validation_status_unexpected_error(mock_get_client):
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
 @patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_zip(
-    mock_get_client_and_bucket,
+    mock_get_client,
     mock_find_object,
     mock_get_list,
     mock_download,
     tmp_path,
 ):
     # Setup mocks
-    mock_get_client_and_bucket.return_value = "minio_client"
+    mock_get_client.return_value = "minio_client"
     rocrate_obj = DummyObject("some/path/rocrate123.zip", is_dir=False)
     mock_find_object.return_value = rocrate_obj
 
@@ -440,14 +440,14 @@ def test_fetch_rocrate_zip(
 
     with patch("app.utils.minio_utils.tempfile.mkdtemp", return_value=str(tmp_path)):
         # Execute
-        result = fetch_ro_crate_from_minio("test_bucket", "rocrate123")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate123", "some/path")
 
-        # Assert
-        expected_path = tmp_path / "rocrate123.zip"
-        assert result == str(expected_path)
-        mock_download.assert_called_once_with(
-            "minio_client", "test_bucket",
-            "some/path/rocrate123.zip", str(expected_path))
+    # Assert
+    expected_path = tmp_path / "rocrate123.zip"
+    assert result == str(expected_path)
+    mock_download.assert_called_once_with(
+        "minio_client", "test_bucket",
+        "some/path/rocrate123.zip", str(expected_path))
 
 
 @patch("app.utils.minio_utils.download_file_from_minio")
@@ -455,14 +455,14 @@ def test_fetch_rocrate_zip(
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
 @patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_directory(
-    mock_get_client_and_bucket,
+    mock_get_client,
     mock_find_object,
     mock_get_list,
     mock_download,
     tmp_path,
 ):
     # Setup mocks
-    mock_get_client_and_bucket.return_value = "minio_client"
+    mock_get_client.return_value = "minio_client"
     rocrate_obj = DummyObject("rocrates/rocrate124", is_dir=True)
     mock_find_object.return_value = rocrate_obj
 
@@ -476,7 +476,7 @@ def test_fetch_rocrate_directory(
         ]
 
         # Execute
-        result = fetch_ro_crate_from_minio("test_bucket", "rocrate124")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate124", "rocrates")
 
         # Assert
         expected_root = tmp_path / "rocrate124"
@@ -498,13 +498,13 @@ def test_fetch_rocrate_directory(
 @patch("app.utils.minio_utils.find_rocrate_object_on_minio")
 @patch("app.utils.minio_utils.get_minio_client")
 def test_fetch_rocrate_handles_empty_dir(
-    mock_get_client_and_bucket,
+    mock_get_client,
     mock_find_object,
     mock_get_list,
     mock_download,
     tmp_path,
 ):
-    mock_get_client_and_bucket.return_value = "minio_client"
+    mock_get_client.return_value = "minio_client"
     rocrate_obj = DummyObject("rocrate456", is_dir=True)
     mock_find_object.return_value = rocrate_obj
     mock_get_list.return_value = []
@@ -512,7 +512,7 @@ def test_fetch_rocrate_handles_empty_dir(
     from app.utils.minio_utils import fetch_ro_crate_from_minio
 
     with patch("app.utils.minio_utils.tempfile.mkdtemp", return_value=str(tmp_path)):
-        result = fetch_ro_crate_from_minio("test_bucket", "rocrate456")
+        result = fetch_ro_crate_from_minio("test_bucket", "rocrate456", "")
 
         expected_root = tmp_path / "rocrate456"
         assert result == str(expected_root)
