@@ -63,7 +63,7 @@ def fetch_ro_crate_from_minio(minio_bucket: str, crate_id: str, root_path: str) 
     return local_root_path
 
 
-def update_validation_status_in_minio(minio_bucket: str, crate_id: str, validation_status: str) -> None:
+def update_validation_status_in_minio(minio_bucket: str, crate_id: str, root_path: str, validation_status: str) -> None:
     """
     Uploads the validation status to the MinIO bucket.
 
@@ -75,7 +75,11 @@ def update_validation_status_in_minio(minio_bucket: str, crate_id: str, validati
     :raises Exception: If an unexpected error occurs
     """
 
-    object_name = f"{crate_id}_validation/validation_status.txt"
+    # The object in MinIO is <crate_id>_validation/validation_status.txt
+    if root_path:
+        object_name = f"{root_path}/{crate_id}_validation/validation_status.txt"
+    else:
+        object_name = f"{crate_id}_validation/validation_status.txt"
 
     # convert pretty string to dictionary, then back to plain utf-8 encoded string
     validation_string = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")

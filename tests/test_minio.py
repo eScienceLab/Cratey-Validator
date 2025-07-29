@@ -348,7 +348,7 @@ def test_update_validation_status_success(mock_get_client):
     validation_status = json.dumps({"status": "valid", "errors": []})
 
     from app.utils.minio_utils import update_validation_status_in_minio
-    update_validation_status_in_minio("test_bucket", crate_id, validation_status)
+    update_validation_status_in_minio("test_bucket", crate_id, "", validation_status)
 
     expected_object_name = f"{crate_id}_validation/validation_status.txt"
     expected_data = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
@@ -388,7 +388,7 @@ def test_update_validation_status_s3_error(mock_get_client):
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "S3 Error" in str(exc.value.message)
@@ -398,7 +398,7 @@ def test_update_validation_status_s3_error(mock_get_client):
 def test_update_validation_status_value_error(mock_get_client):
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "Configuration Error" in str(exc.value.message)
@@ -412,7 +412,7 @@ def test_update_validation_status_unexpected_error(mock_get_client):
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
 
     assert exc.value.status_code == 500
     assert "Unknown Error" in str(exc.value.message)
