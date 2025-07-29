@@ -29,12 +29,14 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def process_validation_task_by_id(
-    crate_id: str, profile_name: str | None, webhook_url: str | None
+    minio_bucket: str, crate_id: str, root_path: str, profile_name: str | None, webhook_url: str | None
 ) -> None:
     """
     Background task to process the RO-Crate validation by ID.
 
+    :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to validate.
+    :param root_path: The root path containing the RO-Crate.
     :param profile_name: The name of the validation profile to use. Defaults to None.
     :param webhook_url: The webhook URL to send notifications to. Defaults to None.
     :raises Exception: If an error occurs during the validation process.
@@ -46,7 +48,7 @@ def process_validation_task_by_id(
 
     try:
         # Fetch the RO-Crate from MinIO using the provided ID:
-        file_path = fetch_ro_crate_from_minio(crate_id)
+        file_path = fetch_ro_crate_from_minio(minio_bucket, crate_id, root_path)
 
         logging.info(f"Processing validation task for {file_path}")
 
@@ -59,12 +61,12 @@ def process_validation_task_by_id(
             raise Exception(f"Validation failed: {validation_result}")
 
         if not validation_result.has_issues():
-            logging.info(f"RO Crate {file_path} is valid.")
+            logging.info(f"RO Crate {crate_id} is valid.")
         else:
-            logging.info(f"RO Crate {file_path} is invalid.")
+            logging.info(f"RO Crate {crate_id} is invalid.")
 
         # Update the validation status in MinIO:
-        update_validation_status_in_minio(crate_id, validation_result.to_json())
+        update_validation_status_in_minio(minio_bucket, crate_id, root_path, validation_result.to_json())
 
         # TODO: Prepare the data to send to the webhook, and send the webhook notification.
 
@@ -202,7 +204,7 @@ def check_ro_crate_exists(
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
     minio_client = get_minio_client()
-    if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
+    if find_rocrate_object_on_minio(crate_id, minio_client, bucket_name, root_path):
         return True
     else:
         return False
@@ -225,7 +227,7 @@ def check_validation_exists(
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
     minio_client = get_minio_client()
-    if find_validation_object_on_minio(crate_id, minio_client, bucket_name, storage_path=root_path):
+    if find_validation_object_on_minio(crate_id, minio_client, bucket_name, root_path):
         return True
     else:
         return False
