@@ -103,7 +103,9 @@ def test_no_rocrate_for_validation():
     }
 
     # The API expects the JSON to be passed as a string
-    payload = {}
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
 
     response = requests.post(url, json=payload, headers=headers)
 
@@ -126,8 +128,13 @@ def test_no_validation_result_for_missing_crate():
         "Content-Type": "application/json"
     }
 
+    # The API expects the JSON to be passed as a string
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
+
     # GET action and tests
-    response = requests.get(url_get, headers=headers)
+    response = requests.get(url_get, json=payload, headers=headers)
     response_result = response.json()
 
     # Print response for debugging
@@ -147,8 +154,13 @@ def test_get_existing_validation_result():
         "Content-Type": "application/json"
     }
 
+    # The API expects the JSON to be passed as a string
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
+
     # GET action and tests
-    response = requests.get(url_get, headers=headers)
+    response = requests.get(url_get, json=payload, headers=headers)
     response_result = response.json()
 
     # Print response for debugging
@@ -168,8 +180,13 @@ def test_rocrate_not_validated_yet():
         "Content-Type": "application/json"
     }
 
+    # The API expects the JSON to be passed as a string
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
+
     # GET action and tests
-    response = requests.get(url_get, headers=headers)
+    response = requests.get(url_get, json=payload, headers=headers)
     response_result = response.json()
 
     # Print response for debugging
@@ -191,7 +208,9 @@ def test_zipped_rocrate_validation():
     }
 
     # The API expects the JSON to be passed as a string
-    payload = {}
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
@@ -209,7 +228,7 @@ def test_zipped_rocrate_validation():
     time.sleep(10)
 
     # GET action and tests
-    response = requests.get(url_get, headers=headers)
+    response = requests.get(url_get, json=payload, headers=headers)
     response_result = response.json()
 
     # Print response for debugging
@@ -231,7 +250,9 @@ def test_directory_rocrate_validation():
     }
 
     # The API expects the JSON to be passed as a string
-    payload = {}
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
@@ -249,7 +270,7 @@ def test_directory_rocrate_validation():
     time.sleep(10)
 
     # GET action and tests
-    response = requests.get(url_get, headers=headers)
+    response = requests.get(url_get, json=payload, headers=headers)
     response_result = response.json()
 
     # Print response for debugging
@@ -270,7 +291,9 @@ def test_ignore_rocrates_not_on_basepath():
     }
 
     # The API expects the JSON to be passed as a string
-    payload = {}
+    payload = {
+        "minio_bucket" : "ro-crates"
+    }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
