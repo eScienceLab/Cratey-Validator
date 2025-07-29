@@ -38,11 +38,11 @@ def test_process_validation_zipfile_success(
     mock_validation_result.to_json.return_value = '{"status": "valid"}'
     mock_validate.return_value = mock_validation_result
 
-    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
 
-    mock_fetch.assert_called_once_with("crate123")
+    mock_fetch.assert_called_once_with("test_bucket", "crate123", "")
     mock_validate.assert_called_once_with("/tmp/crate.zip", "profileA")
-    mock_update.assert_called_once_with("crate123", '{"status": "valid"}')
+    mock_update.assert_called_once_with("test_bucket", "crate123", "", '{"status": "valid"}')
     mock_webhook.assert_called_once_with("https://example.com/hook", '{"status": "valid"}')
     mock_remove.assert_called_once_with("/tmp/crate.zip")
 
@@ -72,11 +72,11 @@ def test_process_validation_directory_success(
     mock_validation_result.to_json.return_value = '{"status": "valid"}'
     mock_validate.return_value = mock_validation_result
 
-    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
 
-    mock_fetch.assert_called_once_with("crate123")
+    mock_fetch.assert_called_once_with("test_bucket", "crate123", "")
     mock_validate.assert_called_once_with("/tmp/crate123/", "profileA")
-    mock_update.assert_called_once_with("crate123", '{"status": "valid"}')
+    mock_update.assert_called_once_with("test_bucket", "crate123", "", '{"status": "valid"}')
     mock_webhook.assert_called_once_with("https://example.com/hook", '{"status": "valid"}')
     mock_rmtree.assert_called_once_with("/tmp/crate123/")
 
@@ -100,7 +100,7 @@ def test_process_validation_fails_with_message(
     mock_fetch.return_value = "/tmp/crate.zip"
     mock_validate.return_value = "Validation failed"
 
-    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
 
     mock_update.assert_not_called()
     mock_webhook.assert_called_once()
@@ -128,7 +128,7 @@ def test_process_validation_exception(
 ):
     mock_fetch.return_value = "/tmp/crate.zip"
 
-    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
 
     mock_update.assert_not_called()
     mock_webhook.assert_called_once()
@@ -150,7 +150,7 @@ def test_process_validation_fetch_error(
     mock_webhook,
     mock_exists
 ):
-    process_validation_task_by_id("crate123", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
 
     mock_validate.assert_not_called()
     mock_update.assert_not_called()
