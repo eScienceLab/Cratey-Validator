@@ -31,30 +31,33 @@ def test_validate_by_id_success(client):
         mock_queue.assert_called_once_with("test_bucket", "crate-123", "base_path", "default", "https://webhook.example.com")
 
 
-def test_validate_by_id_fails_missing_crate_id(client):
-    payload = {
-        "minio_bucket": "test_bucket",
-        "root_path": "base_path",
-        "webhook_url": "https://webhook.example.com",
-        "profile_name": "default"
-    }
-
-    response = client.post("/v1/ro_crates//validation", json=payload)
-
-    assert response.status_code == 404
-
-
-def test_validate_by_id_fails_missing_minio_bucket(client):
-    crate_id = "crate-123"
-    payload = {
-        "root_path": "base_path",
-        "webhook_url": "https://webhook.example.com",
-        "profile_name": "default"
-    }
-
+@pytest.mark.parametrize(
+    "crate_id, payload, status_code",
+    [
+        (
+            "", {
+                "minio_bucket": "test_bucket",
+                "root_path": "base_path",
+                "webhook_url": "https://webhook.example.com",
+                "profile_name": "default"
+            }, 404
+        ),
+        (
+            "crate-123", {
+                "root_path": "base_path",
+                "webhook_url": "https://webhook.example.com",
+                "profile_name": "default"
+            }, 422
+        ),
+    ],
+    ids=[
+        "missing_crate_id_returns_404",
+        "missing_minio_bucket_returns_422"
+    ]
+)
+def test_validate_fails_missing_elements(client, crate_id, payload, status_code):
     response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
-
-    assert response.status_code == 422
+    assert response.status_code == status_code
 
 
 def test_validate_by_id_missing_root_path_and_profile_name_and_webhook_url(client):
