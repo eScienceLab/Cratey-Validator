@@ -12,23 +12,38 @@ def client():
 
 # Test POST API: /v1/ro_crates/{crate_id}/validation
 
-def test_validate_by_id_success(client):
-    crate_id = "crate-123"
-    payload = {
-        "minio_bucket": "test_bucket",
-        "root_path": "base_path",
-        "webhook_url": "https://webhook.example.com",
-        "profile_name": "default"
-    }
-
+@pytest.mark.parametrize(
+        "crate_id, payload, status_code, response_json",
+        [
+            (
+                "crate-123", {
+                    "minio_bucket": "test_bucket",
+                    "root_path": "base_path",
+                    "webhook_url": "https://webhook.example.com",
+                    "profile_name": "default"
+                }, 202, {"message": "Validation in progress"}
+            ),
+            (
+                "crate-123", {
+                    "minio_bucket": "test_bucket"
+                }, 202, {"message": "Validation in progress"}
+            ),
+        ],
+        ids=["validate_by_id", "validate_with_missing_root_path_and_profile_name_and_webhook_url"]
+)
+def test_validate_by_id_success(client, crate_id, payload, status_code, response_json):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
-        mock_queue.return_value = ({"message": "Validation in progress"}, 202)
+        mock_queue.return_value = (response_json, status_code)
 
         response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
 
-        assert response.status_code == 202
-        assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("test_bucket", "crate-123", "base_path", "default", "https://webhook.example.com")
+        minio_bucket = payload["minio_bucket"] if "minio_bucket" in payload else None
+        root_path = payload["root_path"] if "root_path" in payload else None
+        profile_name = payload["profile_name"] if "profile_name" in payload else None
+        webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
+        assert response.status_code == status_code
+        assert response.json == response_json
+        mock_queue.assert_called_once_with(minio_bucket, crate_id, root_path, profile_name, webhook_url)
 
 
 @pytest.mark.parametrize(
@@ -60,20 +75,6 @@ def test_validate_fails_missing_elements(client, crate_id, payload, status_code)
     assert response.status_code == status_code
 
 
-def test_validate_by_id_missing_root_path_and_profile_name_and_webhook_url(client):
-    crate_id = "crate-123"
-    payload = {
-        "minio_bucket": "test_bucket",
-    }
-
-    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
-        mock_queue.return_value = ({"message": "Validation in progress"}, 202)
-
-        response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
-
-        assert response.status_code == 202
-        assert response.json == {"message": "Validation in progress"}
-        mock_queue.assert_called_once_with("test_bucket", "crate-123", None, None, None)
 
 
 def test_validate_by_id_missing_profile_name(client):
