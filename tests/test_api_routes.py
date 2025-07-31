@@ -166,6 +166,28 @@ def test_validate_metadata_failure(client: FlaskClient, payload: dict, status_co
 
 # Test GET API: /v1/ro_crates/{crate_id}/validation
 
+@pytest.mark.parametrize(
+    "crate_id, payload, status_code",
+    [
+        (
+            "",{
+                "minio_bucket": "test_bucket",
+                "root_path": "base_path"
+            }, 404
+        ),
+        (
+            "crate-123",{
+                "root_path": "base_path"
+            }, 422
+        ),
+    ],
+    ids=["failure_missing_crate_id", "failure_missing_minio_bucket"]
+)
+def test_get_validation_by_id_failures(client: FlaskClient, crate_id: str, payload: dict, status_code: int):
+    response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
+    assert response.status_code == status_code
+
+
 def test_get_validation_by_id_success(client):
     crate_id = "crate-123"
     payload = {
@@ -181,28 +203,6 @@ def test_get_validation_by_id_success(client):
         assert response.status_code == 200
         assert response.json == {"status": "valid"}
         mock_get.assert_called_once_with("test_bucket", "crate-123", "base_path")
-
-
-def test_get_validation_by_id_fails_missing_crate_id(client):
-    payload = {
-        "minio_bucket": "test_bucket",
-        "root_path": "base_path"
-    }
-
-    response = client.get("/v1/ro_crates//validation", json=payload)
-
-    assert response.status_code == 404
-
-
-def test_get_validation_by_id_fails_missing_minio_bucket(client):
-    crate_id = "crate-123"
-    payload = {
-        "root_path": "base_path"
-    }
-
-    response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
-
-    assert response.status_code == 422
 
 
 def test_get_validation_by_id_missing_root_path(client):
