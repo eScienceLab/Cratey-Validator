@@ -15,47 +15,28 @@ from app.utils.minio_utils import InvalidAPIUsage
 
 # Test function: process_validation_task_by_id
 
-@mock.patch("app.tasks.validation_tasks.os.remove")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
-@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
-@mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
-def test_process_validation_zipfile_success(
-    mock_fetch,
-    mock_validate,
-    mock_update,
-    mock_webhook,
-    mock_isfile,
-    mock_exists,
-    mock_remove
-):
-    mock_fetch.return_value = "/tmp/crate.zip"
-
-    mock_validation_result = mock.Mock()
-    mock_validation_result.has_issues.return_value = False
-    mock_validation_result.to_json.return_value = '{"status": "valid"}'
-    mock_validate.return_value = mock_validation_result
-
-    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
-
-    mock_fetch.assert_called_once_with("test_bucket", "crate123", "")
-    mock_validate.assert_called_once_with("/tmp/crate.zip", "profileA")
-    mock_update.assert_called_once_with("test_bucket", "crate123", "", '{"status": "valid"}')
-    mock_webhook.assert_called_once_with("https://example.com/hook", '{"status": "valid"}')
-    mock_remove.assert_called_once_with("/tmp/crate.zip")
-
-
+@pytest.mark.parametrize(
+        "crate_id, os_path_exists, os_path_isfile, os_path_isdir, return_value, webhook, profile, val_success, val_result",
+        [
+            ("crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", True, '{"status": "valid"}'),
+            ("crate123", True, False, True, "/tmp/crate123",
+                "https://example.com/hook", "profileA", True, '{"status": "valid"}'),
+            ("crate123", True, False, True, "/tmp/crate123",
+                None, "profileA", True, '{"status": "valid"}'),
+        ],
+        ids=["successful_validation_zip", "successful_validation_dir", "successful_validation_nowebhook"]
+)
 @mock.patch("app.tasks.validation_tasks.shutil.rmtree")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=False)
-@mock.patch("app.tasks.validation_tasks.os.path.isdir", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.remove")
+@mock.patch("app.tasks.validation_tasks.os.path.exists")
+@mock.patch("app.tasks.validation_tasks.os.path.isfile")
+@mock.patch("app.tasks.validation_tasks.os.path.isdir")
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
 @mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
-def test_process_validation_directory_success(
+def test_process_validation(
     mock_fetch,
     mock_validate,
     mock_update,
@@ -63,202 +44,207 @@ def test_process_validation_directory_success(
     mock_isdir,
     mock_isfile,
     mock_exists,
-    mock_rmtree
+    mock_remove,
+    mock_rmtree,
+    crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
+    return_value: str, webhook: str, profile: str, val_success: bool, val_result: str
 ):
-    mock_fetch.return_value = "/tmp/crate123/"
+    mock_exists.return_value = os_path_exists
+    mock_isfile.return_value = os_path_isfile
+    mock_isdir.return_value = os_path_isdir
+    mock_fetch.return_value = return_value
 
     mock_validation_result = mock.Mock()
-    mock_validation_result.has_issues.return_value = False
-    mock_validation_result.to_json.return_value = '{"status": "valid"}'
+    mock_validation_result.has_issues.return_value = val_success
+    mock_validation_result.to_json.return_value = val_result
     mock_validate.return_value = mock_validation_result
 
-    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
+    process_validation_task_by_id("test_bucket", crate_id, "", profile, webhook)
 
-    mock_fetch.assert_called_once_with("test_bucket", "crate123", "")
-    mock_validate.assert_called_once_with("/tmp/crate123/", "profileA")
-    mock_update.assert_called_once_with("test_bucket", "crate123", "", '{"status": "valid"}')
-    mock_webhook.assert_called_once_with("https://example.com/hook", '{"status": "valid"}')
-    mock_rmtree.assert_called_once_with("/tmp/crate123/")
+    mock_fetch.assert_called_once_with("test_bucket", crate_id, "")
+    mock_validate.assert_called_once_with(return_value, profile)
+    mock_update.assert_called_once_with("test_bucket", crate_id, "", val_result)
+    if webhook is not None:
+        mock_webhook.assert_called_once_with(webhook, val_result)
+    else:
+        mock_webhook.assert_not_called()
+    if os_path_exists and os_path_isfile:
+        mock_remove.assert_called_once_with(return_value)
+        mock_rmtree.assert_not_called()
+    elif os_path_exists and os_path_isdir:
+        mock_rmtree.assert_called_once_with(return_value)
+        mock_remove.assert_not_called()
 
 
+@pytest.mark.parametrize(
+        "crate_id, os_path_exists, os_path_isfile, os_path_isdir, return_fetch, "
+        + "webhook, profile, return_validate, validate_side_effect, fetch_side_effect",
+        [
+            ("crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", "Validation failed", None, None),
+            ("crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", None, Exception("Unexpected error"), None),
+            ("crate123", False, False, False, None,
+                "https://example.com/hook", "profileA", None, None, Exception("MinIO fetch failed")),
+        ],
+        ids=["validation_fails_with_message", "validation_fails_with_validation_exception",
+             "validation_fails_with_fetch_exception"]
+)
+@mock.patch("app.tasks.validation_tasks.shutil.rmtree")
 @mock.patch("app.tasks.validation_tasks.os.remove")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.exists")
+@mock.patch("app.tasks.validation_tasks.os.path.isfile")
+@mock.patch("app.tasks.validation_tasks.os.path.isdir")
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
 @mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
-def test_process_validation_fails_with_message(
+def test_process_validation_failure(
     mock_fetch,
     mock_validate,
     mock_update,
     mock_webhook,
+    mock_isdir,
     mock_isfile,
     mock_exists,
-    mock_remove
+    mock_remove,
+    mock_rmtree,
+    crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
+    return_fetch: str, webhook: str, profile: str, return_validate: str,
+    validate_side_effect: Exception, fetch_side_effect: Exception
 ):
-    mock_fetch.return_value = "/tmp/crate.zip"
-    mock_validate.return_value = "Validation failed"
+    mock_exists.return_value = os_path_exists
+    mock_isfile.return_value = os_path_isfile
+    mock_isdir.return_value = os_path_isdir
 
-    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
+    if fetch_side_effect is None:
+        mock_fetch.return_value = return_fetch
+    else:
+        mock_fetch.side_effect = fetch_side_effect
+
+    if validate_side_effect is None:
+        mock_validate.return_value = return_validate
+    else:
+        mock_validate.side_effect = validate_side_effect
+
+    process_validation_task_by_id("test_bucket", crate_id, "", profile, webhook)
+
+    if fetch_side_effect is None:
+        mock_validate.assert_called_once_with(return_fetch, profile)
+    else:
+        mock_validate.assert_not_called()
 
     mock_update.assert_not_called()
     mock_webhook.assert_called_once()
     args, kwargs = mock_webhook.call_args
-    assert args[0] == "https://example.com/hook"
-    assert "Validation failed" in args[1]["error"]
-    mock_remove.assert_called_once_with("/tmp/crate.zip")
+    assert args[0] == webhook
+    if fetch_side_effect is not None:
+        assert fetch_side_effect.args[0] in args[1]["error"]
+    elif validate_side_effect is not None:
+        assert validate_side_effect.args[0] in args[1]["error"]
+    else:
+        assert return_validate in args[1]["error"]
 
-
-@mock.patch("app.tasks.validation_tasks.os.remove")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.os.path.isfile", return_value=True)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
-@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation", side_effect=Exception("Unexpected error"))
-@mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio")
-def test_process_validation_exception(
-    mock_fetch,
-    mock_validate,
-    mock_update,
-    mock_webhook,
-    mock_isfile,
-    mock_exists,
-    mock_remove
-):
-    mock_fetch.return_value = "/tmp/crate.zip"
-
-    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
-
-    mock_update.assert_not_called()
-    mock_webhook.assert_called_once()
-    args, kwargs = mock_webhook.call_args
-    assert args[0] == "https://example.com/hook"
-    assert "Unexpected error" in args[1]["error"]
-    mock_remove.assert_called_once_with("/tmp/crate.zip")
-
-
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=False)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.update_validation_status_in_minio")
-@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
-@mock.patch("app.tasks.validation_tasks.fetch_ro_crate_from_minio", side_effect=Exception("MinIO fetch failed"))
-def test_process_validation_fetch_error(
-    mock_fetch,
-    mock_validate,
-    mock_update,
-    mock_webhook,
-    mock_exists
-):
-    process_validation_task_by_id("test_bucket", "crate123", "", "profileA", "https://example.com/hook")
-
-    mock_validate.assert_not_called()
-    mock_update.assert_not_called()
-    mock_webhook.assert_called_once()
-    args, kwargs = mock_webhook.call_args
-    assert args[0] == "https://example.com/hook"
-    assert "MinIO fetch failed" in args[1]["error"]
+    if not os_path_exists:
+        mock_remove.assert_not_called()
+        mock_rmtree.assert_not_called()
+    elif os_path_exists and os_path_isfile:
+        mock_remove.assert_called_once_with(return_fetch)
+        mock_rmtree.assert_not_called()
+    elif os_path_exists and os_path_isdir:
+        mock_rmtree.assert_called_once_with(return_fetch)
+        mock_remove.assert_not_called()
 
 
 # Test function: process_validation_task_by_metadata
 
+@pytest.mark.parametrize(
+        "crate_json, profile_name, webhook_url, mock_path, validation_json, validation_value, os_path_exists",
+        [
+            (
+                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
+                "test-profile", "https://example.com/webhook", "/tmp/crate",
+                '{"status": "valid"}', False, True
+            ),
+            (
+                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
+                "test-profile", "https://example.com/webhook", "/tmp/crate",
+                '{"status": "invalid"}', True, True
+            )
+        ],
+        ids=["success_no_issues", "success_with_issues"]
+)
 @mock.patch("app.tasks.validation_tasks.shutil.rmtree")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
+@mock.patch("app.tasks.validation_tasks.os.path.exists")
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
 @mock.patch("app.tasks.validation_tasks.build_metadata_only_rocrate")
-def test_validation_success_no_issues(
-    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree
+def test_metadata_validation(
+    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree,
+    crate_json: str, profile_name: str, webhook_url: str, mock_path: str,
+    validation_json: str, validation_value: bool, os_path_exists: bool
 ):
-    crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}'
-    profile_name = "test-profile"
-    webhook_url = "https://example.com/webhook"
-
-    mock_path = "/tmp/crate"
+    mock_exists.return_value = os_path_exists
     mock_build.return_value = mock_path
 
     mock_result = mock.Mock()
-    mock_result.has_issues.return_value = False
-    mock_result.to_json.return_value = '{"status": "valid"}'
+    mock_result.has_issues.return_value = validation_value
+    mock_result.to_json.return_value = validation_json
     mock_validate.return_value = mock_result
 
     result = process_validation_task_by_metadata(crate_json, profile_name, webhook_url)
 
-    assert result == '{"status": "valid"}'
+    assert result == validation_json
     mock_build.assert_called_once_with(crate_json)
     mock_validate.assert_called_once()
-    mock_webhook.assert_called_once_with(webhook_url, '{"status": "valid"}')
+    mock_webhook.assert_called_once_with(webhook_url, validation_json)
     mock_rmtree.assert_called_once_with(mock_path)
 
 
+@pytest.mark.parametrize(
+        "crate_json, profile_name, webhook_url, mock_path, validation_message, os_path_exists",
+        [
+            (
+                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
+                "test-profile", "https://example.com/webhook", "/tmp/crate",
+                "Validation error", True
+            ),
+            (
+                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
+                "test-profile", None, "/tmp/crate",
+                "Validation error", True
+            )
+        ],
+        ids=["validation_fails", "validation_fails_no_webhook"]
+)
 @mock.patch("app.tasks.validation_tasks.shutil.rmtree")
 @mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
 @mock.patch("app.tasks.validation_tasks.send_webhook_notification")
 @mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation")
 @mock.patch("app.tasks.validation_tasks.build_metadata_only_rocrate")
-def test_validation_success_with_issues(
-    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree
-):
-    crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}'
-    mock_path = "/tmp/crate"
-    mock_build.return_value = mock_path
-
-    mock_result = mock.Mock()
-    mock_result.has_issues.return_value = True
-    mock_result.to_json.return_value = '{"status": "invalid"}'
-    mock_validate.return_value = mock_result
-
-    result = process_validation_task_by_metadata(crate_json, None, None)
-
-    assert result == '{"status": "invalid"}'
-    mock_webhook.assert_not_called()
-    mock_rmtree.assert_called_once_with(mock_path)
-
-
-@mock.patch("app.tasks.validation_tasks.shutil.rmtree")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation", return_value="Validation error")
-@mock.patch("app.tasks.validation_tasks.build_metadata_only_rocrate")
 def test_validation_fails_and_sends_error_notification_to_webhook(
-    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree
+    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree,
+    crate_json: str, profile_name: str, webhook_url: str, mock_path: str,
+    validation_message: str, os_path_exists: bool
 ):
-    crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}'
-    mock_path = "/tmp/crate"
     mock_build.return_value = mock_path
 
-    result = process_validation_task_by_metadata(crate_json, "profileX", "https://webhook.test")
+    mock_validate.return_value = validation_message
+
+    result = process_validation_task_by_metadata(crate_json, profile_name, webhook_url)
 
     assert isinstance(result, str)
-    assert "Validation error" in result
+    assert validation_message in result
 
-    # Error webhook should be sent
-    mock_webhook.assert_called_once()
-    args, kwargs = mock_webhook.call_args
-    assert kwargs is None or "error" in args[1]
+    if webhook_url is not None:
+        # Error webhook should be sent
+        mock_webhook.assert_called_once()
+        args, kwargs = mock_webhook.call_args
+        assert kwargs is None or "error" in args[1]
+    else:
+        # Make sure webhook not sent
+        mock_webhook.assert_not_called()
 
-    mock_rmtree.assert_called_once_with(mock_path)
-
-
-@mock.patch("app.tasks.validation_tasks.shutil.rmtree")
-@mock.patch("app.tasks.validation_tasks.os.path.exists", return_value=True)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.perform_ro_crate_validation", return_value="Validation error")
-@mock.patch("app.tasks.validation_tasks.build_metadata_only_rocrate")
-def test_validation_fails_with_no_webhook(
-    mock_build, mock_validate, mock_webhook, mock_exists, mock_rmtree
-):
-    crate_json = '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}'
-    mock_path = "/tmp/crate"
-    mock_build.return_value = mock_path
-
-    result = process_validation_task_by_metadata(crate_json, "profileX", None)
-
-    assert isinstance(result, str)
-    assert "Validation error" in result
-
-    # Make sure webhook not sent
-    mock_webhook.assert_not_called()
     mock_rmtree.assert_called_once_with(mock_path)
 
 
