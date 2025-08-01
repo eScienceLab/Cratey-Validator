@@ -250,15 +250,22 @@ def test_validation_fails_and_sends_error_notification_to_webhook(
 
 # Test function: perform_ro_crate_validation
 
+@pytest.mark.parametrize(
+        "file_path, profile_name, skip_checks",
+        [
+            ("crates/test_crate", "ro_profile", ["check1", "check2"]),
+            ("crates/test_crate", None, None)
+        ],
+        ids=["success_with_all_args", "success_with_only_crate"]
+)
 @mock.patch("app.tasks.validation_tasks.services.validate")
 @mock.patch("app.tasks.validation_tasks.services.ValidationSettings")
-def test_validation_success_with_all_args(mock_validation_settings, mock_validate):
+def test_validation_success_with_all_args(
+    mock_validation_settings, mock_validate,
+    file_path: str, profile_name: str, skip_checks: list
+):
     mock_result = mock.Mock()
     mock_validate.return_value = mock_result
-
-    file_path = "crates/test_crate"
-    profile_name = "ro_profile"
-    skip_checks = ["check1", "check2"]
 
     result = perform_ro_crate_validation(file_path, profile_name, skip_checks)
 
@@ -269,26 +276,16 @@ def test_validation_success_with_all_args(mock_validation_settings, mock_validat
     mock_validation_settings.assert_called_once()
     args, kwargs = mock_validation_settings.call_args
     assert kwargs["rocrate_uri"].endswith(file_path)
-    assert kwargs["profile_identifier"] == profile_name
-    assert kwargs["skip_checks"] == skip_checks
+    if profile_name is not None:
+        assert kwargs["profile_identifier"] == profile_name
+    else:
+        assert "profile_identifier" not in kwargs
+    if skip_checks is not None:
+        assert kwargs["skip_checks"] == skip_checks
+    else:
+        assert "skip_checks" not in kwargs
 
     mock_validate.assert_called_once_with(mock_validation_settings.return_value)
-
-
-@mock.patch("app.tasks.validation_tasks.services.validate")
-@mock.patch("app.tasks.validation_tasks.services.ValidationSettings")
-def test_validation_success_with_minimal_args(mock_validation_settings, mock_validate):
-    mock_result = mock.Mock()
-    mock_validate.return_value = mock_result
-
-    file_path = "crates/test_crate"
-    result = perform_ro_crate_validation(file_path, None)
-
-    assert result == mock_result
-
-    args, kwargs = mock_validation_settings.call_args
-    assert "profile_identifier" not in kwargs
-    assert "skip_checks" not in kwargs
 
 
 @mock.patch("app.tasks.validation_tasks.services.validate", side_effect=RuntimeError("Validation error"))
@@ -351,55 +348,55 @@ def test_return_validation_raises_error(mock_get_status):
 
 # Test function: check_ro_crate_exists
 
-@mock.patch("app.tasks.validation_tasks.get_minio_client", return_value="mock_client")
-@mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio", return_value="crate123")
+@pytest.mark.parametrize(
+        "bucket, crate_id, base_path, client_return, ro_object_return, rocrate_exists",
+        [
+            ("test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
+            ("test_bucket", "crate12z", "base_path", "mock_client", False, False)
+        ],
+        ids=["rocrate_exists", "rocrate_does_not_exist"]
+)
+@mock.patch("app.tasks.validation_tasks.get_minio_client")
+@mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio")
 def test_ro_crate_exists(
     mock_find_rocrate,
-    mock_get_client
+    mock_get_client,
+    bucket: str, crate_id: str, base_path: str, client_return: str,
+    ro_object_return: str, rocrate_exists: bool
 ):
-    result = check_ro_crate_exists("test_bucket", "crate123", "base_path")
+    mock_get_client.return_value = client_return
+    mock_find_rocrate.return_value = ro_object_return
+
+    result = check_ro_crate_exists(bucket, crate_id, base_path)
 
     mock_get_client.assert_called_once()
-    mock_find_rocrate.assert_called_once_with("crate123", "mock_client", "test_bucket", "base_path")
-    assert result is True
-
-
-@mock.patch("app.tasks.validation_tasks.get_minio_client", return_value="mock_client")
-@mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio", return_value=False)
-def test_ro_crate_does_not_exist(
-    mock_find_rocrate,
-    mock_get_client
-):
-    result = check_ro_crate_exists("test_bucket", "crate12z", "base_path")
-
-    mock_get_client.assert_called_once()
-    mock_find_rocrate.assert_called_once_with("crate12z", "mock_client", "test_bucket", "base_path")
-    assert result is False
+    mock_find_rocrate.assert_called_once_with(crate_id, client_return, bucket, base_path)
+    assert result is rocrate_exists
 
 
 # Test function: check_validation_exists
 
-@mock.patch("app.tasks.validation_tasks.get_minio_client", return_value="mock_client")
-@mock.patch("app.tasks.validation_tasks.find_validation_object_on_minio", return_value="crate123")
+@pytest.mark.parametrize(
+        "bucket, crate_id, base_path, client_return, val_object_return, validate_exists",
+        [
+            ("test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
+            ("test_bucket", "crate12z", "base_path", "mock_client", False, False)
+        ],
+        ids=["validation_exists", "validation_does_not_exist"]
+)
+@mock.patch("app.tasks.validation_tasks.get_minio_client")
+@mock.patch("app.tasks.validation_tasks.find_validation_object_on_minio")
 def test_validation_exists(
     mock_find_validation,
-    mock_get_client
+    mock_get_client,
+    bucket: str, crate_id: str, base_path: str, client_return: str,
+    val_object_return: str, validate_exists: bool
 ):
-    result = check_validation_exists("test_bucket", "crate123", "base_path")
+    mock_get_client.return_value = client_return
+    mock_find_validation.return_value = val_object_return
+
+    result = check_validation_exists(bucket, crate_id, base_path)
 
     mock_get_client.assert_called_once()
-    mock_find_validation.assert_called_once_with("crate123", "mock_client", "test_bucket", "base_path")
-    assert result is True
-
-
-@mock.patch("app.tasks.validation_tasks.get_minio_client", return_value="mock_client")
-@mock.patch("app.tasks.validation_tasks.find_validation_object_on_minio", return_value=False)
-def test_validation_does_not_exist(
-    mock_find_validation,
-    mock_get_client
-):
-    result = check_validation_exists("test_bucket", "crate12z", "base_path")
-
-    mock_get_client.assert_called_once()
-    mock_find_validation.assert_called_once_with("crate12z", "mock_client", "test_bucket", "base_path")
-    assert result is False
+    mock_find_validation.assert_called_once_with(crate_id, client_return, bucket, base_path)
+    assert result is validate_exists
