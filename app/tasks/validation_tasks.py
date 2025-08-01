@@ -41,8 +41,9 @@ def process_validation_task_by_id(
     :param webhook_url: The webhook URL to send notifications to. Defaults to None.
     :raises Exception: If an error occurs during the validation process.
 
-    :todo: Replace the Crate ID with a more comprehensive system, and replace profile name with URI.
     """
+
+    # TODO: Split try statements: (1) fetch and validate; (2) write to minio; (3) webhook
 
     file_path = None
 
@@ -76,9 +77,12 @@ def process_validation_task_by_id(
     except Exception as e:
         logging.error(f"Error processing validation task: {e}")
 
+        # TODO: Should we write error messages to the minio instance too?
+
         # Send failure notification via webhook
-        error_data = {"profile_name": profile_name, "error": str(e)}
-        send_webhook_notification(webhook_url, error_data)
+        if webhook_url:
+            error_data = {"profile_name": profile_name, "error": str(e)}
+            send_webhook_notification(webhook_url, error_data)
 
     finally:
         # Clean up the temporary file if it was created:
