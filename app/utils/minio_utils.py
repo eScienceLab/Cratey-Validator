@@ -61,10 +61,11 @@ def fetch_ro_crate_from_minio(minio_client: object, minio_bucket: str, crate_id:
     return local_root_path
 
 
-def update_validation_status_in_minio(minio_bucket: str, crate_id: str, root_path: str, validation_status: str) -> None:
+def update_validation_status_in_minio(minio_client: object, minio_bucket: str, crate_id: str, root_path: str, validation_status: str) -> None:
     """
     Uploads the validation status to the MinIO bucket.
 
+    :param minio_client: The MinIO client
     :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate in MinIO
     :param validation_status: The validation result to upload
@@ -83,9 +84,6 @@ def update_validation_status_in_minio(minio_bucket: str, crate_id: str, root_pat
     validation_string = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
 
     try:
-
-        minio_client = get_minio_client()
-
         minio_client.put_object(
             minio_bucket,
             object_name,
