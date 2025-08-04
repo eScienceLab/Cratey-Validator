@@ -216,6 +216,7 @@ def check_ro_crate_exists(
 
 
 def check_validation_exists(
+        minio_client: object,
         bucket_name: str,
         crate_id: str,
         root_path: str,
@@ -223,6 +224,7 @@ def check_validation_exists(
     """
     Checks for the existence of a validation result using the provided Crate ID.
 
+    :param minio_client: The MinIO client
     :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to validate.
     :param root_path: The root path containing the RO-Crate.
@@ -231,7 +233,6 @@ def check_validation_exists(
 
     logging.info(f"Checking for existence of RO-Crate {crate_id}")
 
-    minio_client = get_minio_client()
     if find_validation_object_on_minio(crate_id, minio_client, bucket_name, root_path):
         return True
     else:
