@@ -349,17 +349,17 @@ def test_return_validation_raises_error(mock_get_status):
 # Test function: check_ro_crate_exists
 
 @pytest.mark.parametrize(
-        "minio_client, bucket, crate_id, base_path, client_return, ro_object_return, rocrate_exists",
+        "minio_client, bucket, crate_id, base_path, ro_object_return, rocrate_exists",
         [
-            ("minio_client", "test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
-            ("minio_client", "test_bucket", "crate12z", "base_path", "mock_client", False, False)
+            ("minio_client", "test_bucket", "crate123", "base_path", "crate123", True),
+            ("minio_client", "test_bucket", "crate12z", "base_path", False, False)
         ],
         ids=["rocrate_exists", "rocrate_does_not_exist"]
 )
 @mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio")
 def test_ro_crate_exists(
     mock_find_rocrate,
-    minio_client: str, bucket: str, crate_id: str, base_path: str, client_return: str,
+    minio_client: str, bucket: str, crate_id: str, base_path: str,
     ro_object_return: str, rocrate_exists: bool
 ):
     mock_find_rocrate.return_value = ro_object_return
@@ -373,26 +373,22 @@ def test_ro_crate_exists(
 # Test function: check_validation_exists
 
 @pytest.mark.parametrize(
-        "bucket, crate_id, base_path, client_return, val_object_return, validate_exists",
+        "minio_client, bucket, crate_id, base_path, val_object_return, validate_exists",
         [
-            ("test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
-            ("test_bucket", "crate12z", "base_path", "mock_client", False, False)
+            ("minio_client", "test_bucket", "crate123", "base_path", "crate123", True),
+            ("minio_client", "test_bucket", "crate12z", "base_path", False, False)
         ],
         ids=["validation_exists", "validation_does_not_exist"]
 )
-@mock.patch("app.tasks.validation_tasks.get_minio_client")
 @mock.patch("app.tasks.validation_tasks.find_validation_object_on_minio")
 def test_validation_exists(
     mock_find_validation,
-    mock_get_client,
-    bucket: str, crate_id: str, base_path: str, client_return: str,
+    minio_client: str, bucket: str, crate_id: str, base_path: str,
     val_object_return: str, validate_exists: bool
 ):
-    mock_get_client.return_value = client_return
     mock_find_validation.return_value = val_object_return
 
-    result = check_validation_exists(bucket, crate_id, base_path)
+    result = check_validation_exists(minio_client, bucket, crate_id, base_path)
 
-    mock_get_client.assert_called_once()
-    mock_find_validation.assert_called_once_with(crate_id, client_return, bucket, base_path)
+    mock_find_validation.assert_called_once_with(crate_id, minio_client, bucket, base_path)
     assert result is validate_exists
