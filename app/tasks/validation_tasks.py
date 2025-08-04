@@ -29,12 +29,12 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def process_validation_task_by_id(
-    minio_bucket: str, crate_id: str, root_path: str, profile_name: str | None, webhook_url: str | None
+    minio_config: dict, crate_id: str, root_path: str, profile_name: str | None, webhook_url: str | None
 ) -> None:
     """
     Background task to process the RO-Crate validation by ID.
 
-    :param minio_bucket: The MinIO bucket containing the RO-Crate.
+    :param minio_config: The MinIO configuration.
     :param crate_id: The ID of the RO-Crate to validate.
     :param root_path: The root path containing the RO-Crate.
     :param profile_name: The name of the validation profile to use. Defaults to None.
@@ -45,11 +45,13 @@ def process_validation_task_by_id(
 
     # TODO: Split try statements: (1) fetch and validate; (2) write to minio; (3) webhook
 
+    minio_client = get_minio_client(minio_config)
+
     file_path = None
 
     try:
         # Fetch the RO-Crate from MinIO using the provided ID:
-        file_path = fetch_ro_crate_from_minio(minio_bucket, crate_id, root_path)
+        file_path = fetch_ro_crate_from_minio(minio_client, minio_config["bucket"], crate_id, root_path)
 
         logging.info(f"Processing validation task for {file_path}")
 
@@ -67,7 +69,7 @@ def process_validation_task_by_id(
             logging.info(f"RO Crate {crate_id} is invalid.")
 
         # Update the validation status in MinIO:
-        update_validation_status_in_minio(minio_bucket, crate_id, root_path, validation_result.to_json())
+        update_validation_status_in_minio(minio_client, minio_config["bucket"], crate_id, root_path, validation_result.to_json())
 
         # TODO: Prepare the data to send to the webhook, and send the webhook notification.
 
