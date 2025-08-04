@@ -17,17 +17,16 @@ from app.utils.config import InvalidAPIUsage
 logger = logging.getLogger(__name__)
 
 
-def fetch_ro_crate_from_minio(minio_bucket: str, crate_id: str, root_path: str) -> str:
+def fetch_ro_crate_from_minio(minio_client: object, minio_bucket: str, crate_id: str, root_path: str) -> str:
     """
     Fetches an RO-Crate from MinIO based on the crate ID. Downloads the crate as a file and returns local file path.
 
+    :param minio_client: The MinIO client
     :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to fetch from MinIO.
     :param root_path: The root path containing the RO-Crate.
     :return: The local file path where the RO-Crate is saved.
     """
-
-    minio_client = get_minio_client()
 
     rocrate_object = find_rocrate_object_on_minio(crate_id, minio_client, minio_bucket, root_path)
 
