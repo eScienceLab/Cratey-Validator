@@ -349,28 +349,24 @@ def test_return_validation_raises_error(mock_get_status):
 # Test function: check_ro_crate_exists
 
 @pytest.mark.parametrize(
-        "bucket, crate_id, base_path, client_return, ro_object_return, rocrate_exists",
+        "minio_client, bucket, crate_id, base_path, client_return, ro_object_return, rocrate_exists",
         [
-            ("test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
-            ("test_bucket", "crate12z", "base_path", "mock_client", False, False)
+            ("minio_client", "test_bucket", "crate123", "base_path", "mock_client", "crate123", True),
+            ("minio_client", "test_bucket", "crate12z", "base_path", "mock_client", False, False)
         ],
         ids=["rocrate_exists", "rocrate_does_not_exist"]
 )
-@mock.patch("app.tasks.validation_tasks.get_minio_client")
 @mock.patch("app.tasks.validation_tasks.find_rocrate_object_on_minio")
 def test_ro_crate_exists(
     mock_find_rocrate,
-    mock_get_client,
-    bucket: str, crate_id: str, base_path: str, client_return: str,
+    minio_client: str, bucket: str, crate_id: str, base_path: str, client_return: str,
     ro_object_return: str, rocrate_exists: bool
 ):
-    mock_get_client.return_value = client_return
     mock_find_rocrate.return_value = ro_object_return
 
-    result = check_ro_crate_exists(bucket, crate_id, base_path)
+    result = check_ro_crate_exists(minio_client, bucket, crate_id, base_path)
 
-    mock_get_client.assert_called_once()
-    mock_find_rocrate.assert_called_once_with(crate_id, client_return, bucket, base_path)
+    mock_find_rocrate.assert_called_once_with(crate_id, minio_client, bucket, base_path)
     assert result is rocrate_exists
 
 
