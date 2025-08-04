@@ -337,16 +337,14 @@ def test_get_validation_error_raised(
 
 # Testing function: update_validation_status_in_minio
 
-@mock.patch("app.utils.minio_utils.get_minio_client")
-def test_update_validation_status_success(mock_get_client):
+def test_update_validation_status_success():
     mock_minio_client = mock.Mock()
-    mock_get_client.return_value = mock_minio_client
 
     crate_id = "crate123"
     validation_status = json.dumps({"status": "valid", "errors": []})
 
     from app.utils.minio_utils import update_validation_status_in_minio
-    update_validation_status_in_minio("test_bucket", crate_id, "", validation_status)
+    update_validation_status_in_minio(mock_minio_client, "test_bucket", crate_id, "", validation_status)
 
     expected_object_name = f"{crate_id}_validation/validation_status.txt"
     expected_data = json.dumps(json.loads(validation_status), indent=None).encode("utf-8")
@@ -400,19 +398,16 @@ def test_update_validation_status_success(mock_get_client):
         ],
         ids=["s3error", "value_error", "unexpected_error"]
 )
-@mock.patch("app.utils.minio_utils.get_minio_client")
 def test_update_validation_status_erro(
-        mock_get_client,
         bucket: str, crateid: str, root_path: str, validation_result: dict,
         put_side_effect, error_check: str, status_code: int
 ):
     mock_minio_client = mock.Mock()
-    mock_get_client.return_value = mock_minio_client
     mock_minio_client.put_object.side_effect = put_side_effect
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio(bucket, crateid, root_path, json.dumps(validation_result))
+        update_validation_status_in_minio(mock_minio_client, bucket, crateid, root_path, json.dumps(validation_result))
 
     assert exc.value.status_code == status_code
     assert error_check in str(exc.value.message)
