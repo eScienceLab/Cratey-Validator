@@ -17,7 +17,13 @@ def client():
         [
             (
                 "crate-123", {
-                    "minio_bucket": "test_bucket",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
@@ -25,28 +31,52 @@ def client():
             ),
             (
                 "crate-123", {
-                    "minio_bucket": "test_bucket",
-                    "root_path": "base_path",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
+                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                 }, 202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
-                    "minio_bucket": "test_bucket",
-                    "root_path": "base_path",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
+                     "root_path": "base_path",
                     "profile_name": "default"
                 }, 202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
-                    "minio_bucket": "test_bucket",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
                 }, 202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
-                    "minio_bucket": "test_bucket"
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                 }, 202, {"message": "Validation in progress"}
             ),
         ],
@@ -60,13 +90,13 @@ def test_validate_by_id_success(client: FlaskClient, crate_id: str, payload: dic
 
         response = client.post(f"/v1/ro_crates/{crate_id}/validation", json=payload)
 
-        minio_bucket = payload["minio_bucket"] if "minio_bucket" in payload else None
+        minio_config = payload["minio_config"] if "minio_config" in payload else None
         root_path = payload["root_path"] if "root_path" in payload else None
         profile_name = payload["profile_name"] if "profile_name" in payload else None
         webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
         assert response.status_code == status_code
         assert response.json == response_json
-        mock_queue.assert_called_once_with(minio_bucket, crate_id, root_path, profile_name, webhook_url)
+        mock_queue.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url)
 
 
 @pytest.mark.parametrize(
