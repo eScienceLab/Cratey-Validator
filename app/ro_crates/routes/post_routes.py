@@ -5,7 +5,8 @@
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
 from apiflask import APIBlueprint, Schema
-from apiflask.fields import String
+from apiflask.fields import String, Boolean
+from marshmallow.fields import Nested
 from flask import Response
 
 from app.services.validation_service import (
@@ -16,8 +17,16 @@ from app.services.validation_service import (
 post_routes_bp = APIBlueprint("post_routes", __name__)
 
 
+class MinioConfig(Schema):
+    endpoint = String(required=True)
+    accesskey = String(required=True)
+    secret = String(required=True)
+    ssl = Boolean(required=True)
+    bucket = String(required=True)
+
+
 class ValidateCrate(Schema):
-    minio_bucket = String(required=True)
+    minio_config = Nested(MinioConfig, required=True)
     root_path = String(required=False)
     profile_name = String(required=False)
     webhook_url = String(required=False)
@@ -38,7 +47,12 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     - **crate_id**: The RO-Crate ID. _Required_.
 
     Request Body Parameters:
-    - **minio_bucket**: The MinIO bucket containing the RO-Crate. _Required_
+    - **minio_config**: The MinIO bucket containing the RO-Crate. _Required_
+      - **endpoint**: Endpoint, e.g. 'localhost:9000'
+      - **accesskey**: Access key / username
+      - **secret**: Secret / password
+      - **ssl**: Use SSL encryption? True/False
+      - **bucket**: The MinIO bucket to access 
     - **root_path**: The root path containing the RO-Crate. _Optional_
     - **profile_name**: The profile name for validation. _Optional_.
     - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
@@ -50,7 +64,7 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
-    minio_bucket = json_data["minio_bucket"]
+    minio_config = json_data["minio_config"]
 
     if "root_path" in json_data:
         root_path = json_data["root_path"]
@@ -67,7 +81,7 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     else:
         profile_name = None
 
-    return queue_ro_crate_validation_task(minio_bucket, crate_id, root_path, profile_name, webhook_url)
+    return queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
 
 
 @post_routes_bp.post("/validate_metadata")
