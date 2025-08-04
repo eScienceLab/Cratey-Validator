@@ -16,17 +16,49 @@ from app.utils.minio_utils import InvalidAPIUsage
 # Test function: process_validation_task_by_id
 
 @pytest.mark.parametrize(
-        "crate_id, os_path_exists, os_path_isfile, os_path_isdir, return_value, webhook, profile, val_success, val_result",
+        "minio_config, crate_id, os_path_exists, os_path_isfile, os_path_isdir, " +
+        "return_value, webhook, profile, val_success, val_result, minio_client",
         [
-            ("crate123", True, True, False, "/tmp/crate.zip",
-                "https://example.com/hook", "profileA", True, '{"status": "valid"}'),
-            ("crate123", True, False, True, "/tmp/crate123",
-                "https://example.com/hook", "profileA", True, '{"status": "valid"}'),
-            ("crate123", True, False, True, "/tmp/crate123",
-                None, "profileA", True, '{"status": "valid"}'),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", True, '{"status": "valid"}',
+                "minio_client"
+            ),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", True, False, True, "/tmp/crate123",
+                "https://example.com/hook", "profileA", True, '{"status": "valid"}',
+                "minio_client"
+            ),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", True, False, True, "/tmp/crate123",
+                None, "profileA", True, '{"status": "valid"}',
+                "minio_client"
+            ),
         ],
         ids=["successful_validation_zip", "successful_validation_dir", "successful_validation_nowebhook"]
 )
+@mock.patch("app.tasks.validation_tasks.get_minio_client")
 @mock.patch("app.tasks.validation_tasks.shutil.rmtree")
 @mock.patch("app.tasks.validation_tasks.os.remove")
 @mock.patch("app.tasks.validation_tasks.os.path.exists")
@@ -46,24 +78,27 @@ def test_process_validation(
     mock_exists,
     mock_remove,
     mock_rmtree,
-    crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
-    return_value: str, webhook: str, profile: str, val_success: bool, val_result: str
+    mock_client,
+    minio_config: dict, crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
+    return_value: str, webhook: str, profile: str, val_success: bool, val_result: str, minio_client: str
 ):
     mock_exists.return_value = os_path_exists
     mock_isfile.return_value = os_path_isfile
     mock_isdir.return_value = os_path_isdir
     mock_fetch.return_value = return_value
+    mock_client.return_value = minio_client
 
     mock_validation_result = mock.Mock()
     mock_validation_result.has_issues.return_value = val_success
     mock_validation_result.to_json.return_value = val_result
     mock_validate.return_value = mock_validation_result
 
-    process_validation_task_by_id("test_bucket", crate_id, "", profile, webhook)
+    process_validation_task_by_id(minio_config, crate_id, "", profile, webhook)
 
-    mock_fetch.assert_called_once_with("test_bucket", crate_id, "")
+    mock_client.assert_called_once_with(minio_config)
+    mock_fetch.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "")
     mock_validate.assert_called_once_with(return_value, profile)
-    mock_update.assert_called_once_with("test_bucket", crate_id, "", val_result)
+    mock_update.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "", val_result)
     if webhook is not None:
         mock_webhook.assert_called_once_with(webhook, val_result)
     else:
