@@ -9,7 +9,6 @@ import logging
 import os
 import tempfile
 
-from dotenv import load_dotenv
 from io import BytesIO
 from minio import Minio, S3Error
 from app.utils.config import InvalidAPIUsage
@@ -306,20 +305,24 @@ def get_minio_object_list(object_path: str, minio_client, minio_bucket: str, rec
         return object_list
 
 
-def get_minio_client() -> Minio:
+def get_minio_client(minio_config: dict) -> Minio:
     """
-    Initialises the MinIO client from environment variables.
+    Initialises the MinIO client from provided settings.
 
+    :param minio_config: A dictionary containing the below parameters
+    :param endpoint: A string containing host and port. E.g. 'localhost:9000'
+    :param access_key: A string containing the access key / username
+    :param secret_key: A string containing the secret key / password
+    :param use_ssl: Boolean defining if SSL connection should be used or not
     :return: The MinIO client.
     :raises ValueError: If required environment variables are not set.
     """
-    load_dotenv()
 
     minio_client = Minio(
-        endpoint=os.environ.get("MINIO_ENDPOINT"),
-        access_key=os.environ.get("MINIO_ROOT_USER"),
-        secret_key=os.environ.get("MINIO_ROOT_PASSWORD"),
-        secure=False,
+        endpoint=minio_config["endpoint"],
+        access_key=minio_config["accesskey"],
+        secret_key=minio_config["secret"],
+        secure=minio_config["ssl"],
     )
 
     return minio_client
