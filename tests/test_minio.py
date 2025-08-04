@@ -57,73 +57,76 @@ def test_get_minio_object_list_success():
     mock_response.close.assert_called_once()
 
 
-def test_get_minio_object_list_s3error():
+@pytest.mark.parametrize(
+        "bucket, path, status_code, list_side_effect, error_check",
+        [
+            (
+                "my-bucket", "path/rocrate.zip", 500,
+                S3Error(code="S3 error",
+                        message=None,
+                        resource=None,
+                        request_id=None,
+                        host_id=None,
+                        response=None),
+                "MinIO S3 Error"
+            ),
+            (
+                "my-bucket", "path/rocrate.zip", 500,
+                ValueError("Missing config"),
+                "Configuration Error"
+            ),
+            (
+                "my-bucket", "path/rocrate.zip", 500,
+                RuntimeError("Something went wrong"),
+                "Unknown Error"
+            ),
+        ],
+        ids=["s3error", "value_error", "unexpected_error"]
+)
+def test_get_minio_object_list_errors(bucket: str, path: str, status_code: int, list_side_effect, error_check: str):
     mock_minio_client = MagicMock()
-    mock_minio_client.list_objects.side_effect = S3Error(
-                                code="S3 error",
-                                message=None,
-                                resource=None,
-                                request_id=None,
-                                host_id=None,
-                                response=None
-                                )
+    mock_minio_client.list_objects.side_effect = list_side_effect
 
     from app.utils.minio_utils import get_minio_object_list, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_minio_object_list("path/", mock_minio_client, "my-bucket")
+        get_minio_object_list(path, mock_minio_client, bucket)
 
-    assert exc.value.status_code == 500
-    assert "MinIO S3 Error" in str(exc.value.message)
-
-
-def test_get_minio_object_list_value_error():
-    mock_minio_client = MagicMock()
-    mock_minio_client.list_objects.side_effect = ValueError("Missing config")
-
-    from app.utils.minio_utils import get_minio_object_list, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        get_minio_object_list("path/", mock_minio_client, "my-bucket")
-
-    assert exc.value.status_code == 500
-    assert "Configuration Error" in str(exc.value.message)
-
-
-def test_get_minio_object_list_unexpected_error():
-    mock_minio_client = MagicMock()
-    mock_minio_client.list_objects.side_effect = RuntimeError("Something went wrong")
-
-    from app.utils.minio_utils import get_minio_object_list, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        get_minio_object_list("path/", mock_minio_client, "my-bucket")
-
-    assert exc.value.status_code == 500
-    assert "Unknown Error" in str(exc.value.message)
+    assert exc.value.status_code == status_code
+    assert error_check in str(exc.value.message)
 
 
 # Testing function: find_rocrate_object_on_minio
 
+
+@pytest.mark.parametrize(
+    "rocrate_object, crateid, bucket, root_path",
+    [
+        (
+            DummyObject("my/path/rocrate123/", is_dir=True),
+            "rocrate123", "bucket", "my/path"
+        ),
+        (
+            DummyObject("my/path/rocrate123.zip"),
+            "rocrate123", "bucket", "my/path"
+        ),
+        (
+            DummyObject("rocrate123.zip"),
+            "rocrate123", "bucket", None
+        ),
+    ],
+    ids=["rocrate_directory", "rocrate_zip", "rootpath_none"]
+)
 @patch("app.utils.minio_utils.get_minio_object_list")
-def test_rocrate_found_as_directory(mock_get_list):
+def test_finding_rocrate_on_minio(
+        mock_get_list,
+        rocrate_object: DummyObject, crateid: str, bucket: str, root_path: str):
     # Simulate a directory object match
-    obj = DummyObject("my/path/rocrate123/", is_dir=True)
-    mock_get_list.return_value = [obj]
+    mock_get_list.return_value = [rocrate_object]
     minio_client = MagicMock()
 
     from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", root_path="my/path")
-    assert result == obj
-
-
-@patch("app.utils.minio_utils.get_minio_object_list")
-def test_rocrate_found_as_zip(mock_get_list):
-    # Simulate a zip object match
-    obj = DummyObject("rocrate123.zip")
-    mock_get_list.return_value = [obj]
-    minio_client = MagicMock()
-
-    from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate123", minio_client, "bucket", None)
-    assert result == obj
+    result = find_rocrate_object_on_minio(crateid, minio_client, bucket, root_path)
+    assert result == rocrate_object
 
 
 @patch("app.utils.minio_utils.get_minio_object_list")
@@ -142,82 +145,62 @@ def test_rocrate_not_found(mock_get_list):
     assert not result
 
 
-@patch("app.utils.minio_utils.get_minio_object_list")
-def test_storage_path_none(mock_get_list):
-    # Ensures correct rocrate_path is used when storage_path is None
-    obj = DummyObject("rocrate456.zip")
-    mock_get_list.return_value = [obj]
-    minio_client = MagicMock()
-
-    from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate456", minio_client, "bucket", None)
-    assert result == obj
-
-
-@patch("app.utils.minio_utils.get_minio_object_list")
-def test_storage_path_provided(mock_get_list):
-    # Ensures correct rocrate_path is used when storage_path is provided
-    obj = DummyObject("data/rocrate789/", is_dir=True)
-    mock_get_list.return_value = [obj]
-    minio_client = MagicMock()
-
-    from app.utils.minio_utils import find_rocrate_object_on_minio
-    result = find_rocrate_object_on_minio("rocrate789", minio_client, "bucket", root_path="data")
-    assert result == obj
-
-
 # Testing function: find_validation_object_on_minio
 
+@pytest.mark.parametrize(
+    "object_path, crateid, bucket, root_path",
+    [
+        (
+            "my/storage/rocrate123_validation/validation_status.txt",
+            "rocrate123", "bucket", "my/storage"
+        ),
+        (
+            "rocrate123_validation/validation_status.txt",
+            "rocrate123", "bucket", None
+        ),
+    ],
+    ids=["with_storage_path", "without_storage_path"]
+)
 @patch("app.utils.minio_utils.get_minio_object_list")
-def test_validation_object_found_with_storage_path(mock_get_list):
+def test_validation_object_found_with_storage_path(
+        mock_get_list,
+        object_path: str, crateid: str, bucket: str, root_path: str):
     # Setup
-    expected_path = "my/storage/rocrate123_validation/validation_status.txt"
-    obj = DummyObject(expected_path)
+    obj = DummyObject(object_path)
     mock_get_list.return_value = [obj]
 
     from app.utils.minio_utils import find_validation_object_on_minio
     # Execute
-    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket", root_path="my/storage")
+    result = find_validation_object_on_minio(crateid, MagicMock(), bucket, root_path)
 
     # Assert
     assert result == obj
-    mock_get_list.assert_called_once_with(expected_path, mock.ANY, "bucket")
+    mock_get_list.assert_called_once_with(object_path, mock.ANY, bucket)
 
 
+@pytest.mark.parametrize(
+    "object_list, crateid, bucket, root_path",
+    [
+        (
+            [DummyObject("some/other/object.txt")],
+            "rocrate999", "bucket", None
+        ),
+        (
+            [],
+            "rocrate999", "bucket", None
+        ),
+    ],
+    ids=["other_objects", "empty_list"]
+)
 @patch("app.utils.minio_utils.get_minio_object_list")
-def test_validation_object_found_without_storage_path(mock_get_list):
-    # Setup
-    expected_path = "rocrate123_validation/validation_status.txt"
-    obj = DummyObject(expected_path)
-    mock_get_list.return_value = [obj]
-
-    from app.utils.minio_utils import find_validation_object_on_minio
-    # Execute
-    result = find_validation_object_on_minio("rocrate123", MagicMock(), "bucket", None)
-
-    # Assert
-    assert result == obj
-    mock_get_list.assert_called_once_with(expected_path, mock.ANY, "bucket")
-
-
-@patch("app.utils.minio_utils.get_minio_object_list")
-def test_validation_object_not_found(mock_get_list):
-    # Setup: object name does not match exactly
-    mock_get_list.return_value = [DummyObject("some/other/object.txt")]
-
-    from app.utils.minio_utils import find_validation_object_on_minio
-    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket", None)
-
-    assert result is False
-
-
-@patch("app.utils.minio_utils.get_minio_object_list")
-def test_validation_object_empty_list(mock_get_list):
+def test_validation_object_not_found(
+        mock_get_list,
+        object_list: list, crateid: str, bucket: str, root_path: str):
     # Setup: no objects returned
-    mock_get_list.return_value = []
+    mock_get_list.return_value = object_list
 
     from app.utils.minio_utils import find_validation_object_on_minio
-    result = find_validation_object_on_minio("rocrate999", MagicMock(), "bucket", None)
+    result = find_validation_object_on_minio(crateid, MagicMock(), bucket, root_path)
 
     assert result is False
 
@@ -236,45 +219,47 @@ def test_download_success(mock_logging):
     mock_logging.error.assert_not_called()
 
 
+@pytest.mark.parametrize(
+        "bucket, remotepath, localpath, status_code, get_side_effect, error_check",
+        [
+            (
+                "my-bucket", "remote/path.txt", "local/path.txt", 500,
+                S3Error(code="S3 error",
+                        message=None,
+                        resource=None,
+                        request_id=None,
+                        host_id=None,
+                        response=None),
+                "MinIO S3 Error"
+            ),
+            (
+                "my-bucket", "remote/path.txt", "local/path.txt", 500,
+                ValueError("Missing config"),
+                "Configuration Error"
+            ),
+            (
+                "my-bucket", "remote/path.txt", "local/path.txt", 500,
+                RuntimeError("Something went wrong"),
+                "Unknown Error"
+            ),
+        ],
+        ids=["s3error", "value_error", "unexpected_error"]
+)
 @patch("app.utils.minio_utils.logging")
-def test_download_s3error(mock_logging):
+def test_download_s3error(
+        mock_logging,
+        bucket: str, remotepath: str, localpath: str, status_code: int,
+        get_side_effect, error_check: str
+):
     mock_minio = MagicMock()
-    mock_minio.fget_object.side_effect = S3Error("S3 error", "", "", "", "", "")
+    mock_minio.fget_object.side_effect = get_side_effect
 
     from app.utils.minio_utils import download_file_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        download_file_from_minio(mock_minio, "bucket", "remote/path.txt", "local/path.txt")
+        download_file_from_minio(mock_minio, bucket, remotepath, localpath)
 
-    assert exc.value.status_code == 500
-    assert "MinIO S3 Error" in str(exc.value.message)
-    mock_logging.error.assert_called_once()
-
-
-@patch("app.utils.minio_utils.logging")
-def test_download_value_error(mock_logging):
-    mock_minio = MagicMock()
-    mock_minio.fget_object.side_effect = ValueError("Missing config")
-
-    from app.utils.minio_utils import download_file_from_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        download_file_from_minio(mock_minio, "bucket", "remote/path.txt", "local/path.txt")
-
-    assert exc.value.status_code == 500
-    assert "Configuration Error" in str(exc.value.message)
-    mock_logging.error.assert_called_once()
-
-
-@patch("app.utils.minio_utils.logging")
-def test_download_unexpected_error(mock_logging):
-    mock_minio = MagicMock()
-    mock_minio.fget_object.side_effect = RuntimeError("Something bad happened")
-
-    from app.utils.minio_utils import download_file_from_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        download_file_from_minio(mock_minio, "bucket", "remote/path.txt", "local/path.txt")
-
-    assert exc.value.status_code == 500
-    assert "Unknown Error" in str(exc.value.message)
+    assert exc.value.status_code == status_code
+    assert error_check in str(exc.value.message)
     mock_logging.error.assert_called_once()
 
 
@@ -293,48 +278,46 @@ def test_successful_retrieval(mocker, mock_minio_response):
     mock_minio_response.release_conn.assert_called_once()
 
 
-def test_s3_error_raised(mocker):
+@pytest.mark.parametrize(
+        "bucket, crateid, root_path, status_code, get_side_effect, error_check",
+        [
+            (
+                "my-bucket", "crate123", None, 500,
+                S3Error(code="S3 error",
+                        message=None,
+                        resource=None,
+                        request_id=None,
+                        host_id=None,
+                        response=None),
+                "MinIO S3 Error"
+            ),
+            (
+                "my-bucket", "crate123", None, 500,
+                ValueError("Missing env var"),
+                "Configuration Error"
+            ),
+            (
+                "my-bucket", "crate123", None, 500,
+                RuntimeError("Unexpected failure"),
+                "Unknown Error"
+            ),
+        ],
+        ids=["s3error", "value_error", "unexpected_error"]
+)
+def test_get_validation_error_raised(
+        mocker,
+        bucket: str, crateid: str, root_path: str, status_code: int, get_side_effect, error_check: str
+):
     mock_client = MagicMock()
-    mock_client.get_object.side_effect = S3Error(
-                    code="S3 error",
-                    message=None,
-                    resource=None,
-                    request_id=None,
-                    host_id=None,
-                    response=None
-                )
+    mock_client.get_object.side_effect = get_side_effect
     mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123", None)
+        get_validation_status_from_minio(bucket, crateid, root_path)
 
-    assert exc.value.status_code == 500
-    assert "S3 Error" in str(exc.value.message)
-
-
-def test_value_error_raised(mocker):
-    mocker.patch("app.utils.minio_utils.get_minio_client", side_effect=ValueError("Missing env var"))
-
-    from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123", None)
-
-    assert exc.value.status_code == 500
-    assert "Configuration Error" in str(exc.value.message)
-
-
-def test_generic_exception_raised(mocker):
-    mock_client = MagicMock()
-    mock_client.get_object.side_effect = Exception("Unexpected failure")
-    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
-
-    from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio("test_bucket", "crate123", None)
-
-    assert exc.value.status_code == 500
-    assert "Unknown Error" in str(exc.value.message)
+    assert exc.value.status_code == status_code
+    assert error_check in str(exc.value.message)
 
 
 # Testing function: update_validation_status_in_minio
@@ -373,49 +356,51 @@ def test_update_validation_status_success(mock_get_client):
     assert kwargs["content_type"] == "application/json"
 
 
+@pytest.mark.parametrize(
+        "bucket, crateid, root_path, validation_result, put_side_effect, error_check, status_code",
+        [
+            (
+                "my-bucket", "crate123", None,
+                {"status": "valid"},
+                S3Error(code="S3 error",
+                        message=None,
+                        resource=None,
+                        request_id=None,
+                        host_id=None,
+                        response=None),
+                "MinIO S3 Error", 500
+            ),
+            (
+                "my-bucket", "crate123", None,
+                {"status": "valid"},
+                ValueError("Missing env vars"),
+                "Configuration Error", 500
+            ),
+            (
+                "my-bucket", "crate123", None,
+                {"status": "valid"},
+                RuntimeError("Unexpected failure"),
+                "Unknown Error", 500
+            ),
+        ],
+        ids=["s3error", "value_error", "unexpected_error"]
+)
 @mock.patch("app.utils.minio_utils.get_minio_client")
-def test_update_validation_status_s3_error(mock_get_client):
+def test_update_validation_status_erro(
+        mock_get_client,
+        bucket: str, crateid: str, root_path: str, validation_result: dict,
+        put_side_effect, error_check: str, status_code: int
+):
     mock_minio_client = mock.Mock()
     mock_get_client.return_value = mock_minio_client
-    mock_minio_client.put_object.side_effect = S3Error(
-                                code="S3 error",
-                                message=None,
-                                resource=None,
-                                request_id=None,
-                                host_id=None,
-                                response=None
-                        )
+    mock_minio_client.put_object.side_effect = put_side_effect
 
     from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
+        update_validation_status_in_minio(bucket, crateid, root_path, json.dumps(validation_result))
 
-    assert exc.value.status_code == 500
-    assert "S3 Error" in str(exc.value.message)
-
-
-@mock.patch("app.utils.minio_utils.get_minio_client", side_effect=ValueError("Missing env vars"))
-def test_update_validation_status_value_error(mock_get_client):
-    from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
-
-    assert exc.value.status_code == 500
-    assert "Configuration Error" in str(exc.value.message)
-
-
-@mock.patch("app.utils.minio_utils.get_minio_client")
-def test_update_validation_status_unexpected_error(mock_get_client):
-    mock_minio_client = mock.Mock()
-    mock_get_client.return_value = mock_minio_client
-    mock_minio_client.put_object.side_effect = RuntimeError("Unexpected failure")
-
-    from app.utils.minio_utils import update_validation_status_in_minio, InvalidAPIUsage
-    with pytest.raises(InvalidAPIUsage) as exc:
-        update_validation_status_in_minio("test_bucket", "crate123", "", json.dumps({"status": "valid"}))
-
-    assert exc.value.status_code == 500
-    assert "Unknown Error" in str(exc.value.message)
+    assert exc.value.status_code == status_code
+    assert error_check in str(exc.value.message)
 
 
 # Testing function: fetch_ro_crate_from_minio
