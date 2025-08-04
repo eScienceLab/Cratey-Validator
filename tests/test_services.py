@@ -22,21 +22,33 @@ def flask_app():
 # Test function: queue_ro_crate_validation_task
 
 @pytest.mark.parametrize(
-        "crate_id, rocrate_exists, delay_side_effects, payload, status_code, response_dict",
+        "crate_id, rocrate_exists, minio_client, delay_side_effects, payload, status_code, response_dict",
         [
             (
-                "crate123", True, None,
+                "crate123", True, "minio_client", None,
                 {
-                    "minio_bucket": "test_bucket",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
                 }, 202, {"message": "Validation in progress"}
             ),
             (
-                "crate123", True, Exception("Celery down"),
+                "crate123", True, "minio_client", Exception("Celery down"),
                 {
-                    "minio_bucket": "test_bucket",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
@@ -45,33 +57,47 @@ def flask_app():
         ],
         ids=["successful_queue", "celery_server_down"]
 )
+@patch("app.services.validation_service.process_validation_task_by_id.delay")
+@patch("app.services.validation_service.check_ro_crate_exists")
+@patch("app.services.validation_service.get_minio_client")
 def test_queue_ro_crate_validation_task(
-    flask_app: FlaskClient, crate_id: str, rocrate_exists: bool,
+    mock_client,
+    mock_exists,
+    mock_delay,
+    flask_app: FlaskClient, crate_id: str, rocrate_exists: bool, minio_client: str,
     delay_side_effects: Exception, payload: dict, status_code: int, response_dict: dict
 ):
-    minio_bucket = payload["minio_bucket"] if "minio_bucket" in payload else None
+    mock_delay.side_effect = delay_side_effects
+    mock_exists.return_value = rocrate_exists
+    mock_client.return_value = minio_client
+
+    minio_config = payload["minio_config"] if "minio_config" in payload else None
     root_path = payload["root_path"] if "root_path" in payload else None
     profile_name = payload["profile_name"] if "profile_name" in payload else None
     webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
 
-    with patch("app.services.validation_service.process_validation_task_by_id.delay", side_effect=delay_side_effects) as mock_delay:
-        with patch("app.services.validation_service.check_ro_crate_exists", return_value=rocrate_exists) as mock_exists:
+    response, status_code = queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
 
-            response, status_code = queue_ro_crate_validation_task(minio_bucket, crate_id, root_path, profile_name, webhook_url)
-
-            mock_exists.assert_called_once_with(minio_bucket, crate_id, root_path)
-            mock_delay.assert_called_once_with(minio_bucket, crate_id, root_path, profile_name, webhook_url)
-            assert status_code == status_code
-            assert response.json == response_dict
+    mock_client.assert_called_once_with(minio_config)
+    mock_exists.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, root_path)
+    mock_delay.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url)
+    assert status_code == status_code
+    assert response.json == response_dict
 
 
 @pytest.mark.parametrize(
-        "crate_id, rocrate_exists, payload, iau_message",
+        "crate_id, rocrate_exists, minio_client, payload, iau_message",
         [
             (
-                "crate12z", False,
+                "crate12z", False, "minio_client",
                 {
-                    "minio_bucket": "test_bucket",
+                    "minio_config": {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                    },
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
@@ -80,24 +106,31 @@ def test_queue_ro_crate_validation_task(
         ],
         ids=["no_rocrate_exists"]
 )
+@patch("app.services.validation_service.process_validation_task_by_id.delay")
+@patch("app.services.validation_service.check_ro_crate_exists")
+@patch("app.services.validation_service.get_minio_client")
 def test_queue_ro_crate_validation_task_failure(
+    mock_client,
+    mock_exists,
+    mock_delay,
     flask_app: FlaskClient, crate_id: str, rocrate_exists: bool,
-    payload: dict, iau_message: str
+    minio_client: str, payload: dict, iau_message: str
 ):
-    minio_bucket = payload["minio_bucket"] if "minio_bucket" in payload else None
+    mock_exists.return_value = rocrate_exists
+    mock_client.return_value = minio_client
+
+    minio_config = payload["minio_config"] if "minio_config" in payload else None
     root_path = payload["root_path"] if "root_path" in payload else None
     profile_name = payload["profile_name"] if "profile_name" in payload else None
     webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
 
-    with patch("app.services.validation_service.process_validation_task_by_id.delay") as mock_delay:
-        with patch("app.services.validation_service.check_ro_crate_exists", return_value=rocrate_exists) as mock_exists:
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
 
-            with pytest.raises(InvalidAPIUsage) as exc_info:
-                queue_ro_crate_validation_task(minio_bucket, crate_id, root_path, profile_name, webhook_url)
-
-            assert iau_message in str(exc_info.value.message)
-            mock_exists.assert_called_once_with(minio_bucket, crate_id, root_path)
-            mock_delay.assert_not_called()
+    assert iau_message in str(exc_info.value.message)
+    mock_client.assert_called_once_with(minio_config)
+    mock_exists.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, root_path)
+    mock_delay.assert_not_called()
 
 
 # Test function: queue_ro_crate_metadata_validation_task
