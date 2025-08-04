@@ -22,14 +22,29 @@ class DummyObject:
 
 # Testing function: get_minio_client
 
-def test_get_minio_client_success(monkeypatch):
-    # Set required env vars
-    monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")
-    monkeypatch.setenv("MINIO_ROOT_USER", "admin")
-    monkeypatch.setenv("MINIO_ROOT_PASSWORD", "password123")
+@pytest.mark.parametrize(
+        "minio_config",
+        [
+            {
+                "endpoint": "localhost:9000",
+                "accesskey": "admin",
+                "secret": "password123",
+                "ssl": False
+            },
+            {
+                "endpoint": "localhost:9000",
+                "accesskey": "admin",
+                "secret": "password123",
+                "ssl": False,
+                "bucket": "ignore_this"
+            }
+        ],
+        ids=["base_case", "ignore_extra_items"]
+)
+def test_get_minio_client_success(minio_config: dict):
 
     from app.utils.minio_utils import get_minio_client
-    client = get_minio_client()
+    client = get_minio_client(minio_config)
 
     assert isinstance(client, Minio)
     assert client._base_url.host == "localhost:9000"
