@@ -112,19 +112,50 @@ def test_process_validation(
 
 
 @pytest.mark.parametrize(
-        "crate_id, os_path_exists, os_path_isfile, os_path_isdir, return_fetch, "
-        + "webhook, profile, return_validate, validate_side_effect, fetch_side_effect",
+        "minio_config, crate_id, os_path_exists, os_path_isfile, os_path_isdir, return_fetch, "
+        + "webhook, profile, return_validate, validate_side_effect, fetch_side_effect, minio_client",
         [
-            ("crate123", True, True, False, "/tmp/crate.zip",
-                "https://example.com/hook", "profileA", "Validation failed", None, None),
-            ("crate123", True, True, False, "/tmp/crate.zip",
-                "https://example.com/hook", "profileA", None, Exception("Unexpected error"), None),
-            ("crate123", False, False, False, None,
-                "https://example.com/hook", "profileA", None, None, Exception("MinIO fetch failed")),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", "Validation failed", None, None,
+                "minio_client"
+            ),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", True, True, False, "/tmp/crate.zip",
+                "https://example.com/hook", "profileA", None, Exception("Unexpected error"), None,
+                "minio_client"
+            ),
+            (
+                {
+                        "endpoint": "localhost:9000",
+                        "accesskey": "admin",
+                        "secret": "password123",
+                        "ssl": False,
+                        "bucket": "test_bucket"
+                },
+                "crate123", False, False, False, None,
+                "https://example.com/hook", "profileA", None, None, Exception("MinIO fetch failed"),
+                "minio_client"
+            ),
         ],
         ids=["validation_fails_with_message", "validation_fails_with_validation_exception",
              "validation_fails_with_fetch_exception"]
 )
+@mock.patch("app.tasks.validation_tasks.get_minio_client")
 @mock.patch("app.tasks.validation_tasks.shutil.rmtree")
 @mock.patch("app.tasks.validation_tasks.os.remove")
 @mock.patch("app.tasks.validation_tasks.os.path.exists")
@@ -144,13 +175,15 @@ def test_process_validation_failure(
     mock_exists,
     mock_remove,
     mock_rmtree,
-    crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
+    mock_client,
+    minio_config: dict, crate_id: str, os_path_exists: bool, os_path_isfile: bool, os_path_isdir: bool,
     return_fetch: str, webhook: str, profile: str, return_validate: str,
-    validate_side_effect: Exception, fetch_side_effect: Exception
+    validate_side_effect: Exception, fetch_side_effect: Exception, minio_client: str
 ):
     mock_exists.return_value = os_path_exists
     mock_isfile.return_value = os_path_isfile
     mock_isdir.return_value = os_path_isdir
+    mock_client.return_value = minio_client
 
     if fetch_side_effect is None:
         mock_fetch.return_value = return_fetch
@@ -162,7 +195,7 @@ def test_process_validation_failure(
     else:
         mock_validate.side_effect = validate_side_effect
 
-    process_validation_task_by_id("test_bucket", crate_id, "", profile, webhook)
+    process_validation_task_by_id(minio_config, crate_id, "", profile, webhook)
 
     if fetch_side_effect is None:
         mock_validate.assert_called_once_with(return_fetch, profile)
