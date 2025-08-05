@@ -283,10 +283,9 @@ def test_download_s3error(
 def test_successful_retrieval(mocker, mock_minio_response):
     mock_client = MagicMock()
     mock_client.get_object.return_value = mock_minio_response
-    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio
-    result = get_validation_status_from_minio("test_bucket", "crate123", None)
+    result = get_validation_status_from_minio(mock_client, "test_bucket", "crate123", None)
 
     assert result == {"status": "valid"}
     mock_minio_response.close.assert_called_once()
@@ -325,11 +324,10 @@ def test_get_validation_error_raised(
 ):
     mock_client = MagicMock()
     mock_client.get_object.side_effect = get_side_effect
-    mocker.patch("app.utils.minio_utils.get_minio_client", return_value=mock_client)
 
     from app.utils.minio_utils import get_validation_status_from_minio, InvalidAPIUsage
     with pytest.raises(InvalidAPIUsage) as exc:
-        get_validation_status_from_minio(bucket, crateid, root_path)
+        get_validation_status_from_minio(mock_client, bucket, crateid, root_path)
 
     assert exc.value.status_code == status_code
     assert error_check in str(exc.value.message)
