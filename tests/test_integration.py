@@ -6,6 +6,8 @@ import json
 import os
 import docker
 from minio import Minio
+import dotenv
+import uuid
 
 
 @pytest.fixture(scope="session")
@@ -16,14 +18,16 @@ def docker_client():
 @pytest.fixture(scope="session", autouse=True)
 def docker_compose(docker_client):
     """Start Docker Compose before tests, shut down after."""
+    # create_environment_file()
     print("Starting Docker Compose...")
     subprocess.run(
-        ["docker", "compose", "-f", "docker-compose-develop.yml", "up", "-d"],
+        ["docker", "compose", "-f", "docker-compose-develop.yml", "up", "--build", "-d"],
         check=True
     )
     time.sleep(10)  # Wait for services to start — adjust as needed
 
     load_test_data_into_minio()
+    # set_secrets_in_minio()
 
     yield  # Run the tests
 
@@ -38,12 +42,29 @@ def docker_compose(docker_client):
     subprocess.run(["docker", "compose", "down"], check=True)
 
 
+def create_environment_file():
+    """Generate temporary secrets for the environment settings"""
+    env_file_path = ".env"
+
+    # Generate access key and secret key
+    access_key = f"access-{uuid.uuid4().hex[:8]}"
+    secret_key = f"secret-{uuid.uuid4().hex[:16]}"
+
+    dotenv.set_key(env_file_path, key_to_set="MINIO_ENDPOINT", value_to_set="localhost:9000")
+    dotenv.set_key(env_file_path, key_to_set="MINIO_ROOT_USER", value_to_set="minioadmin")
+    dotenv.set_key(env_file_path, key_to_set="MINIO_ROOT_PASSWORD", value_to_set="minioadmin")
+    dotenv.set_key(env_file_path, key_to_set="MINIO_SECRET", value_to_set=secret_key)
+    dotenv.set_key(env_file_path, key_to_set="MINIO_ACCESSKEY", value_to_set=access_key)
+
+
 def load_test_data_into_minio():
     """Connect to MinIO and upload test files."""
+    dotenv.load_dotenv()
+
     minio_client = Minio(
         endpoint="localhost:9000",
-        access_key="minioadmin",
-        secret_key="minioadmin",
+        access_key=os.environ.get("MINIO_ROOT_USER"),
+        secret_key=os.environ.get("MINIO_ROOT_PASSWORD"),
         secure=False
     )
 
@@ -62,6 +83,11 @@ def load_test_data_into_minio():
 
             print(f"Uploading {file_path} as {object_name} to bucket {bucket_name}")
             minio_client.fput_object(bucket_name, object_name, file_path)
+
+
+def set_secrets_in_minio():
+    """Set the defined Access Key in Minio Server"""
+    dotenv.load_dotenv()
 
 
 def test_validate_metadata():
