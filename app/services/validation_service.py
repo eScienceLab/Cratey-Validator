@@ -100,14 +100,14 @@ def queue_ro_crate_metadata_validation_task(
 
 
 def get_ro_crate_validation_task(
-    minio_bucket: str,
+    minio_config: dict,
     crate_id: str,
     root_path: str,
 ) -> tuple[Response, int]:
     """
     Retrieves an RO-Crate validation result.
 
-    :param minio_bucket: The MinIO bucket containing the RO-Crate.
+    :param minio_config: Access settings for Minio instance containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate to validate.
     :param root_path: The root path containing the RO-Crate.
     :return: A tuple containing a JSON response and an HTTP status code.
@@ -115,16 +115,18 @@ def get_ro_crate_validation_task(
     """
     logging.info(f"Retrieving validation for: {crate_id}")
 
-    if check_ro_crate_exists(minio_bucket, crate_id, root_path):
+    minio_client = get_minio_client(minio_config)
+
+    if check_ro_crate_exists(minio_client, minio_config["bucket"], crate_id, root_path):
         logging.info("RO-Crate exists")
     else:
         logging.info("RO-Crate does not exist")
         raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
 
-    if check_validation_exists(minio_bucket, crate_id, root_path):
+    if check_validation_exists(minio_client, minio_config["bucket"], crate_id, root_path):
         logging.info("Validation result exists")
     else:
         logging.info("Validation does not exist")
         raise InvalidAPIUsage(f"No validation result yet for RO-Crate: {crate_id}", 400)
 
-    return return_ro_crate_validation(minio_bucket, crate_id, root_path), 200
+    return return_ro_crate_validation(minio_client, minio_config["bucket"], crate_id, root_path), 200
