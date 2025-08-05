@@ -200,13 +200,25 @@ def test_validate_metadata_failure(client: FlaskClient, payload: dict, status_co
     "crate_id, payload, status_code",
     [
         (
-            "",{
-                "minio_bucket": "test_bucket",
+            "", {
+                "minio_config": {
+                    "endpoint": "localhost:9000",
+                    "accesskey": "admin",
+                    "secret": "password123",
+                    "ssl": False,
+                    "bucket": "test_bucket"
+                },
                 "root_path": "base_path"
             }, 404
         ),
         (
-            "crate-123",{
+            "crate-123", {
+                "minio_config": {
+                    "endpoint": "localhost:9000",
+                    "accesskey": "admin",
+                    "secret": "password123",
+                    "ssl": False,
+                },
                 "root_path": "base_path"
             }, 422
         ),
@@ -221,7 +233,13 @@ def test_get_validation_by_id_failures(client: FlaskClient, crate_id: str, paylo
 def test_get_validation_by_id_success(client):
     crate_id = "crate-123"
     payload = {
-        "minio_bucket": "test_bucket",
+        "minio_config": {
+            "endpoint": "localhost:9000",
+            "accesskey": "admin",
+            "secret": "password123",
+            "ssl": False,
+            "bucket": "test_bucket"
+        },
         "root_path": "base_path"
     }
 
@@ -232,20 +250,26 @@ def test_get_validation_by_id_success(client):
 
         assert response.status_code == 200
         assert response.json == {"status": "valid"}
-        mock_get.assert_called_once_with("test_bucket", "crate-123", "base_path")
+        mock_get.assert_called_once_with(payload["minio_config"], "crate-123", "base_path")
 
 
 def test_get_validation_by_id_missing_root_path(client):
     crate_id = "crate-123"
     payload = {
-        "minio_bucket": "test_bucket",
+        "minio_config": {
+            "endpoint": "localhost:9000",
+            "accesskey": "admin",
+            "secret": "password123",
+            "ssl": False,
+            "bucket": "test_bucket"
+        }
     }
 
     with patch("app.ro_crates.routes.get_routes.get_ro_crate_validation_task") as mock_get:
-        mock_get.return_value = ({"message": "Validation in progress"}, 202)
+        mock_get.return_value = ({"status": "valid"}, 200)
 
         response = client.get(f"/v1/ro_crates/{crate_id}/validation", json=payload)
 
-        assert response.status_code == 202
-        assert response.json == {"message": "Validation in progress"}
-        mock_get.assert_called_once_with("test_bucket", "crate-123", None)
+        assert response.status_code == 200
+        assert response.json == {"status": "valid"}
+        mock_get.assert_called_once_with(payload["minio_config"], "crate-123", None)
