@@ -203,41 +203,84 @@ def test_queue_metadata_json_errors(flask_app, crate_json: str, status_code: int
 # Test function: get_ro_crate_validation_task
 
 @pytest.mark.parametrize(
-        "crate_id, crate_exists, validation_exists, validation_value, status_code, error_message",
+        "minio_config, crate_id, crate_exists, validation_exists, " +
+        "validation_value, status_code, error_message, minio_client",
         [
-            ("crate123", True, True, {"status": "valid"}, 200, None),
-            ("crate123", False, False, None, 400, "No RO-Crate with prefix: crate123"),
-            ("crate123", True, False, None, 400, "No validation result yet for RO-Crate: crate123"),
+            (
+                {
+                    "endpoint": "localhost:9000",
+                    "accesskey": "admin",
+                    "secret": "password123",
+                    "ssl": False,
+                    "bucket": "test_bucket"
+                },
+                "crate123", True, True, {"status": "valid"}, 200, None,
+                "minio_client"
+            ),
+            (
+                {
+                    "endpoint": "localhost:9000",
+                    "accesskey": "admin",
+                    "secret": "password123",
+                    "ssl": False,
+                    "bucket": "test_bucket"
+                },
+                "crate123", False, False, None, 400, "No RO-Crate with prefix: crate123",
+                "minio_client"
+            ),
+            (
+                {
+                    "endpoint": "localhost:9000",
+                    "accesskey": "admin",
+                    "secret": "password123",
+                    "ssl": False,
+                    "bucket": "test_bucket"
+                },
+                "crate123", True, False, None, 400, "No validation result yet for RO-Crate: crate123",
+                "minio_client"
+            ),
         ],
         ids=["validation_exists", "rocrate_missing", "validation_missing"]
 )
-def test_get_validation(flask_app, crate_id: str, crate_exists: bool,
-                        validation_exists: bool, validation_value: dict,
-                        status_code: int, error_message: str):
-    with patch("app.services.validation_service.check_ro_crate_exists", return_value=crate_exists) as mock_rocrate:
-        with patch("app.services.validation_service.check_validation_exists", return_value=validation_exists) as mock_validation:
-            with patch("app.services.validation_service.return_ro_crate_validation", return_value=validation_value) as mock_return:
+@patch("app.services.validation_service.check_ro_crate_exists")
+@patch("app.services.validation_service.check_validation_exists")
+@patch("app.services.validation_service.return_ro_crate_validation")
+@patch("app.services.validation_service.get_minio_client")
+def test_get_validation(
+    mock_client,
+    mock_return,
+    mock_validation,
+    mock_rocrate,
+    flask_app, minio_config: dict, crate_id: str, crate_exists: bool,
+    validation_exists: bool, validation_value: dict,
+    status_code: int, error_message: str, minio_client: str
+):
+    mock_client.return_value = minio_client
+    mock_rocrate.return_value = crate_exists
+    mock_validation.return_value = validation_exists
+    mock_return.return_value = validation_value
 
-                if crate_exists and validation_exists:
-                    response, status = get_ro_crate_validation_task("test_bucket", crate_id, "base_path")
+    if crate_exists and validation_exists:
+        response, status = get_ro_crate_validation_task(minio_config, crate_id, "base_path")
 
-                    mock_return.assert_called_once_with("test_bucket", crate_id, "base_path")
-                    mock_rocrate.assert_called_once_with("test_bucket", crate_id, "base_path")
-                    mock_validation.assert_called_once_with("test_bucket", crate_id, "base_path")
+        mock_client.assert_called_once_with(minio_config)
+        mock_return.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
+        mock_rocrate.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
+        mock_validation.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
 
-                    assert status == status_code
-                    assert response == validation_value
+        assert status == status_code
+        assert response == validation_value
 
-                else:
-                    with pytest.raises(InvalidAPIUsage) as exc_info:
-                        get_ro_crate_validation_task("test_bucket", crate_id, "base_path")
+    else:
+        with pytest.raises(InvalidAPIUsage) as exc_info:
+            get_ro_crate_validation_task(minio_config, crate_id, "base_path")
 
-                        assert exc_info.value.status_code == status_code
-                        assert error_message in str(exc_info.value.message)
+            assert exc_info.value.status_code == status_code
+            assert error_message in str(exc_info.value.message)
 
-                        mock_rocrate.assert_called_once_with("test_bucket", crate_id, "base_path")
-                        if crate_exists:
-                            mock_validation.assert_called_once_with("test_bucket", crate_id, "base_path")
-                        else:
-                            mock_validation.assert_not_called()
-                        mock_return.assert_not_called()
+            mock_rocrate.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
+            if crate_exists:
+                mock_validation.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
+            else:
+                mock_validation.assert_not_called()
+            mock_return.assert_not_called()
