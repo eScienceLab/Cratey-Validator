@@ -109,11 +109,12 @@ def update_validation_status_in_minio(minio_client: object, minio_bucket: str, c
     )
 
 
-def get_validation_status_from_minio(minio_bucket: str, crate_id: str, root_path: str) -> dict:
+def get_validation_status_from_minio(minio_client: object, minio_bucket: str, crate_id: str, root_path: str) -> dict:
     """
     Checks for the existence of a validation report for the given RO-Crate in the MinIO bucket.
     Returns validation message if it exists, or notification that it is missing if not.
 
+    :param minio_client: The MinIO client
     :param minio_bucket: The MinIO bucket containing the RO-Crate.
     :param crate_id: The ID of the RO-Crate in MinIO
     :return validation_status: Either the validation status, or note that this does not exist
@@ -129,9 +130,6 @@ def get_validation_status_from_minio(minio_bucket: str, crate_id: str, root_path
     logging.info(f"Getting object {object_name}")
 
     try:
-
-        minio_client = get_minio_client()
-
         response = minio_client.get_object(
             minio_bucket,
             object_name,
