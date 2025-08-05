@@ -104,7 +104,13 @@ def test_no_rocrate_for_validation():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     response = requests.post(url, json=payload, headers=headers)
@@ -130,7 +136,13 @@ def test_no_validation_result_for_missing_crate():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # GET action and tests
@@ -156,7 +168,13 @@ def test_get_existing_validation_result():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # GET action and tests
@@ -182,7 +200,13 @@ def test_rocrate_not_validated_yet():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # GET action and tests
@@ -209,7 +233,13 @@ def test_zipped_rocrate_validation():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # POST action and tests
@@ -266,7 +296,13 @@ def test_directory_rocrate_validation():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # POST action and tests
@@ -322,7 +358,13 @@ def test_ignore_rocrates_not_on_basepath():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates"
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
     }
 
     # POST action and tests
@@ -350,7 +392,13 @@ def test_zipped_rocrate_in_subdirectory_validation():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates",
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        },
         "root_path" : subdir_path
     }
 
@@ -409,7 +457,13 @@ def test_directory_rocrate_in_subdirectory_validation():
 
     # The API expects the JSON to be passed as a string
     payload = {
-        "minio_bucket" : "ro-crates",
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        },
         "root_path" : subdir_path
     }
 
