@@ -242,6 +242,7 @@ def check_validation_exists(
 
 
 def return_ro_crate_validation(
+        minio_client: object,
         bucket_name: str,
         crate_id: str,
         root_path: str,
@@ -249,10 +250,11 @@ def return_ro_crate_validation(
     """
     Retrieves the validation result for an RO-Crate using the provided Crate ID.
 
+    :param minio_client: The MinIO client
     :param crate_id: The ID of the RO-Crate that has been validated
     :return: The validation result
     """
 
     logging.info(f"Fetching validation result for RO-Crate {crate_id}")
 
-    return get_validation_status_from_minio(bucket_name, crate_id, root_path)
+    return get_validation_status_from_minio(minio_client, bucket_name, crate_id, root_path)
