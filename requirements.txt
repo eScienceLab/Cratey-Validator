@@ -14,8 +14,6 @@ argon2-cffi==25.1.0
     # via minio
 argon2-cffi-bindings==25.1.0
     # via argon2-cffi
-async-timeout==5.0.1
-    # via redis
 attrs==25.3.0
     # via
     #   cattrs
@@ -26,7 +24,7 @@ blinker==1.9.0
     # via flask
 cattrs==25.1.1
     # via requests-cache
-celery==5.4.0
+celery==5.5.3
     # via -r requirements.in
 certifi==2025.8.3
     # via
@@ -163,9 +161,7 @@ typing-extensions==4.14.1
     #   minio
     #   rich-click
 tzdata==2025.2
-    # via
-    #   celery
-    #   kombu
+    # via kombu
 url-normalize==2.2.1
     # via requests-cache
 urllib3==2.5.0
