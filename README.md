@@ -2,6 +2,48 @@
 
 This project presents a Flask-based API for validating RO-Crates.
 
+## API
+
+#### Request Validation of RO-Crate
+
+#### Get RO-Crate Validation Result
+
+#### Validate RO-Crate Metadata
+
+<details>
+ <summary><code>POST</code> <code><b>/</b></code> <code>(validates submitted RO-Crate Metadata)</code></summary>
+
+##### Parameters
+
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | crate_json | required  | string                 | RO-Crate metadata, stored as a single string  |
+> | profile_name | optional  | string                 | RO-Crate profile to validate against  |
+
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `Successful Validation`                                             |
+> | `422`         | `application/json`                | `Error: Details of Validation Error`                                |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X 'POST' \
+>  'http://localhost:5001/v1/ro_crates/validate_metadata' \
+>  -H 'accept: application/json' \
+>  -H 'Content-Type: application/json' \
+>  -d '{
+>  "crate_json": "{'\''test1'\'':'\''test2'\''}"
+> }'
+> ```
+
+</details>
+
+
+
 ## Project Structure
 
 ```
