@@ -11,7 +11,7 @@ This project presents a Flask-based API for validating RO-Crates.
 #### Validate RO-Crate Metadata
 
 <details>
- <summary><code>POST</code> <code><b>/</b></code> <code>(validates submitted RO-Crate Metadata)</code></summary>
+ <summary><code>POST</code> <code><b>v1/ro_crates/validate_metadata</b></code> <code>(validates submitted RO-Crate Metadata)</code></summary>
 
 ##### Parameters
 
