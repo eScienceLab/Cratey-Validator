@@ -14,8 +14,6 @@ argon2-cffi==25.1.0
     # via minio
 argon2-cffi-bindings==25.1.0
     # via argon2-cffi
-async-timeout==5.0.1
-    # via redis
 attrs==25.3.0
     # via
     #   cattrs
@@ -184,7 +182,7 @@ wcwidth==0.2.13
     #   prompt-toolkit
 webargs==8.7.0
     # via apiflask
-werkzeug==3.0.4
+werkzeug==3.0.6
     # via
     #   -r requirements.in
     #   flask
