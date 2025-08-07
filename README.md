@@ -70,12 +70,20 @@ For testing locally developed containers use the alternate Docker Compose file:
 
 ## Example Usage
 
-```
+Submission of validation of RO-Crate with the ID of `ro_crate_1`. No webhook is used here: 
+```bash
 curl -X 'POST' \
-  'http://localhost:5001/ro_crates/validate_by_id_no_webhook' \
+  'http://localhost:5001/ro_crates/v1/ro_crate_1/validation' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{
-  "crate_id": "1"
-}'
+  -d '{}'
+```
+
+Retrieval of validation result for RO-Crate `ro_crate_1`:
+```bash
+curl -X 'GET' \
+  'http://localhost:5001/ro_crates/v1/ro_crate_1/validation' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{}'
 ```

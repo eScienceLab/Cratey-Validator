@@ -5,29 +5,57 @@
 # Copyright (c) 2025 eScience Lab, The University of Manchester
 
 from apiflask import APIBlueprint, Schema
-from apiflask.fields import Integer, String
-from flask import request, Response
+from apiflask.fields import String, Boolean
+from marshmallow.fields import Nested
+from flask import Response
 
-from app.services.validation_service import queue_ro_crate_validation_task
+from app.services.validation_service import (
+    queue_ro_crate_validation_task,
+    queue_ro_crate_metadata_validation_task
+)
 
 post_routes_bp = APIBlueprint("post_routes", __name__)
 
-class validate_data(Schema):
-    crate_id = String(required=True)
+
+class MinioConfig(Schema):
+    endpoint = String(required=True)
+    accesskey = String(required=True)
+    secret = String(required=True)
+    ssl = Boolean(required=True)
+    bucket = String(required=True)
+
+
+class ValidateCrate(Schema):
+    minio_config = Nested(MinioConfig, required=True)
+    root_path = String(required=False)
     profile_name = String(required=False)
     webhook_url = String(required=False)
 
 
-@post_routes_bp.post("/validate_by_id")
-@post_routes_bp.input(validate_data(partial=True), location='json')
-def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
+class ValidateJSON(Schema):
+    crate_json = String(required=True)
+    profile_name = String(required=False)
+
+
+@post_routes_bp.post("<string:crate_id>/validation")
+@post_routes_bp.input(ValidateCrate(partial=False), location='json')
+def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
 
-    Parameters:
-    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
+    Path Parameters:
+    - **crate_id**: The RO-Crate ID. _Required_.
+
+    Request Body Parameters:
+    - **minio_config**: The MinIO bucket containing the RO-Crate. _Required_
+      - **endpoint**: Endpoint, e.g. 'localhost:9000'
+      - **accesskey**: Access key / username
+      - **secret**: Secret / password
+      - **ssl**: Use SSL encryption? True/False
+      - **bucket**: The MinIO bucket to access 
+    - **root_path**: The root path containing the RO-Crate. _Optional_
     - **profile_name**: The profile name for validation. _Optional_.
-    - **webhook_url**: The webhook URL where validation results will be sent. _Required_.
+    - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
 
     Returns:
     - A tuple containing the validation task's response and an HTTP status code.
@@ -36,47 +64,48 @@ def validate_ro_crate_from_id(json_data) -> tuple[Response, int]:
     - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
-    try:
-        crate_id = json_data["crate_id"]
-    except:
-        raise KeyError("Missing required parameter: 'crate_id'")
-    try:
-        webhook_url = json_data["webhook_url"]
-    except:
-        raise KeyError("Missing required parameter: 'webhook_url'")
+    minio_config = json_data["minio_config"]
 
-    try:
+    if "root_path" in json_data:
+        root_path = json_data["root_path"]
+    else:
+        root_path = None
+
+    if "webhook_url" in json_data:
+        webhook_url = json_data["webhook_url"]
+    else:
+        webhook_url = None
+
+    if "profile_name" in json_data:
         profile_name = json_data["profile_name"]
-    except:
+    else:
         profile_name = None
 
-    return queue_ro_crate_validation_task(crate_id, profile_name, webhook_url)
+    return queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
 
-@post_routes_bp.post("/validate_by_id_no_webhook")
-@post_routes_bp.input(validate_data(partial=True), location='json') # -> json_data
-def validate_ro_crate_from_id_no_webhook(json_data) -> tuple[Response, int]:
+
+@post_routes_bp.post("/validate_metadata")
+@post_routes_bp.input(ValidateJSON(partial=False), location='json')  # -> json_data
+def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
-    Endpoint to validate an RO-Crate using its ID from MinIO.
+    Endpoint to validate an RO-Crate JSON file uploaded to the Service.
 
-    Parameters:
-    - **crate_id**: The ID of the RO-Crate to validate. _Required_.
+    Request Body Parameters:
+    - **crate_json**: The RO-Crate JSON-LD, as a string. _Required_
     - **profile_name**: The profile name for validation. _Optional_.
 
     Returns:
     - A tuple containing the validation task's response and an HTTP status code.
 
     Raises:
-    - KeyError: If required parameters (`crate_id`) are missing.
+    - KeyError: If required parameters (`crate_json`) are missing.
     """
 
-    try:
-        crate_id = json_data['crate_id']
-    except:
-        raise KeyError("Missing required parameter: 'id'")
+    crate_json = json_data["crate_json"]
 
-    try:
-        profile_name = json_data['profile_name']
-    except:
+    if "profile_name" in json_data:
+        profile_name = json_data["profile_name"]
+    else:
         profile_name = None
 
-    return queue_ro_crate_validation_task(crate_id, profile_name)
+    return queue_ro_crate_metadata_validation_task(crate_json, profile_name)
