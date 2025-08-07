@@ -1,4 +1,4 @@
-celery==5.4.0
+celery==5.5.3
 minio==7.2.16
 requests==2.32.4
 Flask==3.0.3
