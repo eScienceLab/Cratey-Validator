@@ -123,54 +123,33 @@ This project presents a Flask-based API for validating RO-Crates.
 
 ##### Parameters
 
-> | name       |  type     | data type               | description                                                           |
-> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
-> | crate_json | required  | string                 | RO-Crate metadata, stored as a single string  |
-> | profile_name | optional  | string                 | RO-Crate profile to validate against  |
+| name       |  type     | data type               | description                                                           |
+|------------|-----------|-------------------------|-----------------------------------------------------------------------|
+| crate_json | required  | string                 | RO-Crate metadata, stored as a single string  |
+| profile_name | optional  | string                 | RO-Crate profile to validate against  |
 
 
 ##### Responses
 
-> | http code     | content-type                      | response                                                            |
-> |---------------|-----------------------------------|---------------------------------------------------------------------|
-> | `200`         | `application/json`                | `Successful Validation`                                             |
-> | `422`         | `application/json`                | `Error: Details of Validation Error`                                |
+| http code     | content-type                      | response                                                            |
+|---------------|-----------------------------------|---------------------------------------------------------------------|
+| `200`         | `application/json`                | `Successful Validation`                                             |
+| `422`         | `application/json`                | `Error: Details of Validation Error`                                |
 
 ##### Example cURL
 
-> ```javascript
->  curl -X 'POST' \
->  'http://localhost:5001/v1/ro_crates/validate_metadata' \
->  -H 'accept: application/json' \
->  -H 'Content-Type: application/json' \
->  -d '{
->  "crate_json": "{'\''test1'\'':'\''test2'\''}"
-> }'
-> ```
+```javascript
+ curl -X 'POST' \
+ 'http://localhost:5001/v1/ro_crates/validate_metadata' \
+ -H 'accept: application/json' \
+ -H 'Content-Type: application/json' \
+ -d '{
+ "crate_json": "{'\''test1'\'':'\''test2'\''}"
+ }'
+```
 
 </details>
 
-
-
-## Project Structure
-
-```
-app/
-├── ro_crates/
-│   ├── routes/
-│   │   ├── __init__.py         # Registers blueprints
-│   │   └── post_routes.py      # POST API routes
-│   └── __init__.py             
-├── services/
-│   ├── logging_service.py      # Centralised logging
-│   └── validation_service.py   # Queue RO-Crates for validation
-├── tasks/
-│   └── validation_tasks.py     # Validate RO-Crates
-├── utils/
-│   ├── config.py               # Configuration
-│   ├── minio_utils.py          # Methods for interacting with MinIO
-│   └── webhook_utils.py        # Methods for sending webhooks
-```
 
 ## Setting up the project
 
@@ -217,3 +196,23 @@ For testing locally developed containers use the alternate Docker Compose file:
 ```bash
    docker compose --file docker-compose-develop.yml up --build
 ``` 
+
+### Project Structure
+
+```
+app/
+├── ro_crates/
+│   ├── routes/
+│   │   ├── __init__.py         # Registers blueprints
+│   │   └── post_routes.py      # POST API routes
+│   └── __init__.py             
+├── services/
+│   ├── logging_service.py      # Centralised logging
+│   └── validation_service.py   # Queue RO-Crates for validation
+├── tasks/
+│   └── validation_tasks.py     # Validate RO-Crates
+├── utils/
+│   ├── config.py               # Configuration
+│   ├── minio_utils.py          # Methods for interacting with MinIO
+│   └── webhook_utils.py        # Methods for sending webhooks
+```
