@@ -217,23 +217,3 @@ For testing locally developed containers use the alternate Docker Compose file:
 ```bash
    docker compose --file docker-compose-develop.yml up --build
 ``` 
-
-## Example Usage
-
-Submission of validation of RO-Crate with the ID of `ro_crate_1`. No webhook is used here: 
-```bash
-curl -X 'POST' \
-  'http://localhost:5001/ro_crates/v1/ro_crate_1/validation' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{}'
-```
-
-Retrieval of validation result for RO-Crate `ro_crate_1`:
-```bash
-curl -X 'GET' \
-  'http://localhost:5001/ro_crates/v1/ro_crate_1/validation' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{}'
-```
