@@ -58,6 +58,8 @@ This project presents a Flask-based API for validating RO-Crates.
 > }'
 > ```
 
+</details>
+
 
 #### Get RO-Crate Validation Result
 
