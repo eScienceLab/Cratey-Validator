@@ -128,6 +128,8 @@ pyshacl==0.30.1
     # via roc-validator
 python-dateutil==2.9.0.post0
     # via celery
+python-dotenv==1.1.1
+    # via -r requirements.in
 rdflib[html]==7.1.4
     # via
     #   owlrl
