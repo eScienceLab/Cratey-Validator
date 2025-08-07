@@ -6,7 +6,113 @@ This project presents a Flask-based API for validating RO-Crates.
 
 #### Request Validation of RO-Crate
 
+<details>
+ <summary><code>POST</code> <code><b>v1/ro_crates/{crate_id}/validation</b></code> <code>(Request validation of RO-Crate validation in Object Store)</code></summary>
+
+##### Path Parameters
+
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | crate_id | required  | string                 | RO-Crate identifer string  |
+
+##### Parameters
+
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | root_path | optional  | string                 | Root path which contains the RO-Crate  |
+> | webhook_url | optional  | string                 | Webhook to send validation result to  |
+> | minio_config | required  | dictionary                 | MinIO Configuration Details    |
+
+`minio_config`
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | endpoint  | required  | string                 | MinIO endpoint  |
+> | accesskey | required  | string                 | MinIO access key or username    |
+> | secret | required  | string                 | MinIO secret or password    |
+> | ssl | required  | boolean                 | Use SSL encryption for MinIO access?     |
+> | bucket | required  | string                 | MinIO bucket containing RO-Crate    |
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `202`         | `application/json`                | `{"message": "Validation in progress"}`                             |
+> | `400`         | `application/json`                | `{"message": "No RO-Crate with prefix: <crate_id>"}`                |
+> | `500`         | `application/json`                | `{"message": "Internal server errors"}`                             |
+
+> ```javascript
+> curl -X 'POST' \
+>  'http://localhost:5001/v1/ro_crates/<crate_id>/validation' \
+>  -H 'accept: application/json' \
+>  -H 'Content-Type: application/json' \
+>  -d '{
+>  "minio_config": {
+>    "accesskey": "<key>",
+>    "bucket": "ro-crates",
+>    "endpoint": "minio:9000",
+>    "secret": "<secret>",
+>    "ssl": false
+>  },
+>  "profile_name": "<profile>",
+>  "webhook_url": "<webhook>"
+> }'
+> ```
+
+
 #### Get RO-Crate Validation Result
+
+<details>
+ <summary><code>GET</code> <code><b>v1/ro_crates/{crate_id}/validation</b></code> <code>(Obtain RO-Crate validation result from Object Store)</code></summary>
+
+##### Path Parameters
+
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | crate_id | required  | string                 | RO-Crate identifer string  |
+
+##### Parameters
+
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | root_path | optional  | string                 | Root path which contains the RO-Crate  |
+> | minio_config | required  | dictionary                 | MinIO Configuration Details    |
+
+`minio_config`
+> | name       |  type     | data type               | description                                                           |
+> |------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | endpoint  | required  | string                 | MinIO endpoint  |
+> | accesskey | required  | string                 | MinIO access key or username    |
+> | secret | required  | string                 | MinIO secret or password    |
+> | ssl | required  | boolean                 | Use SSL encryption for MinIO access?     |
+> | bucket | required  | string                 | MinIO bucket containing RO-Crate    |
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `Successful Validation`                                             |
+> | `422`         | `application/json`                | `Error: Details of Validation Error`                                |
+> | `404`         | `application/json`                | `Not found`                                |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X 'GET' \
+>  'http://localhost:5001/v1/ro_crates/<crate_id>/validation' \
+>  -H 'accept: application/json' \
+>  -H 'Content-Type: application/json' \
+>  -d '{
+>  "minio_config": {
+>    "accesskey": "<key>",
+>    "bucket": "ro-crates",
+>    "endpoint": "minio:9000",
+>    "secret": "<secret>",
+>    "ssl": false
+>  }
+> }'
+> ```
+
+</details>
 
 #### Validate RO-Crate Metadata
 
