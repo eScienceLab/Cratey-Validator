@@ -133,7 +133,7 @@ rdflib[html]==7.1.4
     #   owlrl
     #   pyshacl
     #   roc-validator
-redis==5.2.0
+redis==6.4.0
     # via -r requirements.in
 requests==2.32.4
     # via
@@ -180,7 +180,7 @@ wcwidth==0.2.13
     #   prompt-toolkit
 webargs==8.7.0
     # via apiflask
-werkzeug==3.0.6
+werkzeug==3.1.3
     # via
     #   -r requirements.in
     #   flask
