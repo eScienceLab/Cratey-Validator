@@ -6,7 +6,9 @@
 #
 amqp==5.3.1
     # via kombu
-apiflask==2.4.0
+annotated-types==0.7.0
+    # via pydantic
+apiflask==3.0.2
     # via -r requirements.in
 apispec==6.8.2
     # via apiflask
@@ -51,6 +53,10 @@ click-repl==0.3.0
     # via celery
 colorlog==6.9.0
     # via roc-validator
+dnspython==2.8.0
+    # via email-validator
+email-validator==2.3.0
+    # via pydantic
 enum-tools==0.12.0
     # via roc-validator
 flask==3.1.2
@@ -67,6 +73,7 @@ html5rdf==1.2.1
     # via rdflib
 idna==3.10
     # via
+    #   email-validator
     #   requests
     #   url-normalize
 importlib-metadata==8.7.0
@@ -117,6 +124,10 @@ pycparser==2.22
     # via cffi
 pycryptodome==3.23.0
     # via minio
+pydantic[email]==2.12.4
+    # via apiflask
+pydantic-core==2.41.5
+    # via pydantic
 pygments==2.19.2
     # via
     #   enum-tools
@@ -160,7 +171,12 @@ typing-extensions==4.14.1
     #   cattrs
     #   enum-tools
     #   minio
+    #   pydantic
+    #   pydantic-core
     #   rich-click
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
 tzdata==2025.2
     # via kombu
 url-normalize==2.2.1
