@@ -100,7 +100,7 @@ marshmallow==4.0.0
     #   webargs
 mdurl==0.1.2
     # via markdown-it-py
-minio==7.2.18
+minio==7.2.20
     # via -r requirements.in
 owlrl==7.1.4
     # via pyshacl
