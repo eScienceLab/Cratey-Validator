@@ -26,7 +26,7 @@ blinker==1.9.0
     # via flask
 cattrs==25.1.1
     # via requests-cache
-celery==5.5.3
+celery==5.6.2
     # via -r requirements.in
 certifi==2025.8.3
     # via
@@ -84,7 +84,7 @@ itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
     # via flask
-kombu==5.5.4
+kombu==5.6.2
     # via celery
 markdown-it-py==3.0.0
     # via rich
@@ -179,6 +179,8 @@ typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
     # via kombu
+tzlocal==5.3.1
+    # via celery
 url-normalize==2.2.1
     # via requests-cache
 urllib3==2.5.0
