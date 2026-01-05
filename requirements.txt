@@ -183,7 +183,7 @@ tzlocal==5.3.1
     # via celery
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   minio
     #   requests
