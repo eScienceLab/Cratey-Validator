@@ -6,7 +6,7 @@ import json
 import os
 import docker
 from minio import Minio
-
+import uuid
 
 @pytest.fixture(scope="session")
 def docker_client():
@@ -17,8 +17,11 @@ def docker_client():
 def docker_compose(docker_client):
     """Start Docker Compose before tests, shut down after."""
     print("Starting Docker Compose...")
+
+    PROJECT = f"test_{uuid.uuid4().hex}"
+
     subprocess.run(
-        ["docker", "compose", "-f", "docker-compose-develop.yml", "up", "-d"],
+        ["docker", "compose", "-f", "docker-compose-develop.yml", "-p", PROJECT, "up", "-d"],
         check=True
     )
     time.sleep(10)  # Wait for services to start — adjust as needed
@@ -35,7 +38,7 @@ def docker_compose(docker_client):
             print(logs)
 
     print("Stopping Docker Compose...")
-    subprocess.run(["docker", "compose", "down"], check=True)
+    subprocess.run(["docker", "compose", "-p", PROJECT, "down", "-v"], check=True)
 
 
 def load_test_data_into_minio():
@@ -50,9 +53,7 @@ def load_test_data_into_minio():
     bucket_name = "ro-crates"
     test_data_dir = "tests/data/ro_crates"
 
-    # Ensure bucket exists
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
+    minio_client.make_bucket(bucket_name)
 
     # Walk and upload files
     for root, _, files in os.walk(test_data_dir):
