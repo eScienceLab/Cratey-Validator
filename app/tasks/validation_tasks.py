@@ -158,7 +158,7 @@ def process_validation_task_by_metadata(
 
 
 def perform_ro_crate_validation(
-    file_path: str, profile_name: str | None, skip_checks_list: Optional[list] = None
+    file_path: str, profile_name: str | None, skip_checks_list: Optional[list] = None, profiles_path: Optional[str] = None
 ) -> ValidationResult | str:
     """
     Validates an RO-Crate using the provided file path and profile name.
@@ -166,6 +166,7 @@ def perform_ro_crate_validation(
     :param file_path: The path to the RO-Crate file to validate
     :param profile_name: The name of the validation profile to use. Defaults to None. If None, the CRS4 validator will
         attempt to determine the profile.
+    :param profiles_path: The path to the profiles definition directory
     :param skip_checks_list: A list of checks to skip, if needed
     :return: The validation result.
     :raises Exception: If an error occurs during the validation process.
@@ -183,7 +184,8 @@ def perform_ro_crate_validation(
         settings = services.ValidationSettings(
             rocrate_uri=full_file_path,
             **({"profile_identifier": profile_name} if profile_name else {}),
-            **({"skip_checks": skip_checks_list} if skip_checks_list else {})
+            **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
+            **({"profiles_path": profiles_path} if profiles_path else {})
         )
 
         return services.validate(settings)
