@@ -8,6 +8,7 @@ import docker
 from minio import Minio
 import uuid
 
+
 @pytest.fixture(scope="session")
 def docker_client():
     return docker.from_env()
