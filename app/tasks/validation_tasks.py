@@ -186,7 +186,7 @@ def perform_ro_crate_validation(
             rocrate_uri=full_file_path,
             **({"profile_identifier": profile_name} if profile_name else {}),
             **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
-            **({"profiles_path": profiles_path} if profiles_path else {})
+            **({"extra_profiles_path": profiles_path} if profiles_path else {})
         )
 
         return services.validate(settings)
