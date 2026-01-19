@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def process_validation_task_by_id(
-    minio_config: dict, crate_id: str, root_path: str, profile_name: str | None, webhook_url: str | None
+    minio_config: dict, crate_id: str, root_path: str, profile_name: str | None,
+    webhook_url: str | None, profiles_path: str | None
 ) -> None:
     """
     Background task to process the RO-Crate validation by ID.
@@ -56,7 +57,7 @@ def process_validation_task_by_id(
         logging.info(f"Processing validation task for {file_path}")
 
         # Perform validation:
-        validation_result = perform_ro_crate_validation(file_path, profile_name)
+        validation_result = perform_ro_crate_validation(file_path, profile_name, profiles_path=profiles_path)
 
         if isinstance(validation_result, str):
             logging.error(f"Validation failed: {validation_result}")
