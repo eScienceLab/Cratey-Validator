@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def queue_ro_crate_validation_task(
-    minio_config, crate_id, root_path=None, profile_name=None, webhook_url=None
+    minio_config, crate_id, root_path=None, profile_name=None, webhook_url=None,
+    profiles_path=None
 ) -> tuple[Response, int]:
     """
     Queues an RO-Crate for validation with Celery.
@@ -51,7 +52,8 @@ def queue_ro_crate_validation_task(
         raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
 
     try:
-        process_validation_task_by_id.delay(minio_config, crate_id, root_path, profile_name, webhook_url)
+        process_validation_task_by_id.delay(minio_config, crate_id, root_path,
+                                            profile_name, webhook_url, profiles_path)
         return jsonify({"message": "Validation in progress"}), 202
 
     except Exception as e:
