@@ -10,34 +10,32 @@ from celery import Celery
 from flask import Flask
 
 
+def get_env(name: str, default=None, required=False):
+    value = os.environ.get(name, default)
+    if required and value is None:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 class Config:
     """Base configuration class for the Flask application."""
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "my_precious")
-
     # Celery configuration:
-    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+    CELERY_BROKER_URL = get_env("CELERY_BROKER_URL", required=False)
+    CELERY_RESULT_BACKEND = get_env("CELERY_RESULT_BACKEND", required=False)
 
-    # MinIO configuration:
-    MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
-    MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "bucket-name")
+    # rocrate validator configuration:
+    PROFILES_PATH = get_env("PROFILES_PATH", required=False)
 
 
 class DevelopmentConfig(Config):
     """Development configuration class."""
-
     DEBUG = True
-    ENV = "development"
 
 
 class ProductionConfig(Config):
     """Production configuration class."""
-
     DEBUG = False
-    ENV = "production"
 
 
 class InvalidAPIUsage(Exception):
@@ -63,10 +61,13 @@ def make_celery(app: Flask = None) -> Celery:
     :param app: The Flask application to use.
     :return: The Celery instance.
     """
+    env = os.environ.get("FLASK_ENV", "development")
+    config_cls = ProductionConfig if env == "production" else DevelopmentConfig
+
     celery = Celery(
         app.import_name if app else __name__,
-        broker=os.getenv("CELERY_BROKER_URL"),
-        backend=os.getenv("CELERY_RESULT_BACKEND"),
+        broker=config_cls.CELERY_BROKER_URL,
+        backend=config_cls.CELERY_RESULT_BACKEND,
     )
 
     if app:
