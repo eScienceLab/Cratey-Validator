@@ -13,7 +13,7 @@ def client():
 # Test POST API: /v1/ro_crates/{crate_id}/validation
 
 @pytest.mark.parametrize(
-        "crate_id, payload, status_code, response_json",
+        "crate_id, payload, profiles_path, status_code, response_json",
         [
             (
                 "crate-123", {
@@ -27,7 +27,9 @@ def client():
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
@@ -38,9 +40,11 @@ def client():
                         "ssl": False,
                         "bucket": "test_bucket"
                     },
-                     "root_path": "base_path",
+                    "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
@@ -51,9 +55,11 @@ def client():
                         "ssl": False,
                         "bucket": "test_bucket"
                     },
-                     "root_path": "base_path",
+                    "root_path": "base_path",
                     "profile_name": "default"
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
@@ -66,7 +72,9 @@ def client():
                     },
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
             (
                 "crate-123", {
@@ -77,14 +85,17 @@ def client():
                         "ssl": False,
                         "bucket": "test_bucket"
                     },
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
         ],
         ids=["validate_by_id", "validate_with_missing_profile_name",
              "validate_with_missing_webhook_url", "validate_with_missing_root_path",
              "validate_with_missing_root_path_and_profile_name_and_webhook_url"]
 )
-def test_validate_by_id_success(client: FlaskClient, crate_id: str, payload: dict, status_code: int, response_json: dict):
+def test_validate_by_id_success(client: FlaskClient, crate_id: str, payload: dict,
+                                profiles_path: str, status_code: int, response_json: dict):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
         mock_queue.return_value = (response_json, status_code)
 
@@ -96,7 +107,7 @@ def test_validate_by_id_success(client: FlaskClient, crate_id: str, payload: dic
         webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
         assert response.status_code == status_code
         assert response.json == response_json
-        mock_queue.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url)
+        mock_queue.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url, profiles_path)
 
 
 @pytest.mark.parametrize(
