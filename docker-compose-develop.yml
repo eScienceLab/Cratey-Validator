@@ -32,9 +32,12 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - PROFILES_PATH=/app/profiles
     depends_on:
       - redis
       - minio
+    volumes:
+      - ./tests/data/rocrate_validator_profiles:/app/profiles:ro
 
   redis:
     image: "redis:alpine"
