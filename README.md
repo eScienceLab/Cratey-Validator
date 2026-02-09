@@ -21,6 +21,7 @@ This project presents a Flask-based API for validating RO-Crates.
 |------------|-----------|-------------------------|-----------------------------------------------------------------------|
 | root_path | optional  | string                 | Root path which contains the RO-Crate  |
 | webhook_url | optional  | string                 | Webhook to send validation result to  |
+| profile_name | optional | string                 | RO-Crate profile to validate against  |
 | minio_config | required  | dictionary                 | MinIO Configuration Details    |
 
 `minio_config`
