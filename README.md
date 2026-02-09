@@ -171,14 +171,14 @@ curl -X 'POST' \
 3. A directory containing RO-Crate profiles to replace the default RO-Crate profiles for validation may be provided. Note that this will need to contain all profile files, as the default profile data will not be used. An example of this is given in the `docker-compose-develop.yml` file, and described here:
    1. Store the profiles in a convenient directory, e.g.: `./local/rocrate_validator_profiles`
    2. Add a volume to the celery worker container for these, e.g.:
-```
+   ```
     volumes:
       - ./local/rocrate_validator_profiles:/app/profiles:ro
-```
+   ```
    3. Provide the `PROFILES_PATH` environment to the flask container (not the celery worker container) to match the internal path, e.g.:
-```
+   ```
       - PROFILES_PATH=/app/profiles
-```
+   ```
 
 4. Build and start the services using Docker Compose:
     ```bash
