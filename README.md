@@ -168,12 +168,24 @@ curl -X 'POST' \
 
 2. Create the `.env` file for shared environment information. An example environment file is included (`example.env`), which can be copied for this purpose. But make sure to change any security settings (username and passwords).
 
-3. Build and start the services using Docker Compose:
+3. A directory containing RO-Crate profiles to replace the default RO-Crate profiles for validation may be provided. Note that this will need to contain all profile files, as the default profile data will not be used. An example of this is given in the `docker-compose-develop.yml` file, and described here:
+   1. Store the profiles in a convenient directory, e.g.: `./local/rocrate_validator_profiles`
+   2. Add a volume to the celery worker container for these, e.g.:
+```
+    volumes:
+      - ./local/rocrate_validator_profiles:/app/profiles:ro
+```
+   3. Provide the `PROFILES_PATH` environment to the flask container (not the celery worker container) to match the internal path, e.g.:
+```
+      - PROFILES_PATH=/app/profiles
+```
+
+4. Build and start the services using Docker Compose:
     ```bash
    docker compose up --build
    ```
 
-4. Set up the MinIO bucket
+5. Set up the MinIO bucket
    1. Open the MinIO web interface at `http://localhost:9000`.  
    2. Log in with your MinIO credentials.  
    3. Create a new bucket named `ro-crates`.  
