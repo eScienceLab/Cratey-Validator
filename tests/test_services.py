@@ -197,7 +197,8 @@ def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
                 "{}",
                 422, "Required parameter crate_json is empty"
             ),
-        ]
+        ],
+        ids=["missing_crate_json","invalid_json","empty_json"]
 )
 def test_queue_metadata_json_errors(flask_app, crate_json: str, status_code: int, response_error: str):
     response, status = queue_ro_crate_metadata_validation_task(crate_json)
