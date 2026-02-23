@@ -3,7 +3,7 @@ minio==7.2.20
 requests==2.32.5
 Flask==3.1.2
 Werkzeug==3.1.5
-redis==7.1.1
+redis==7.2.0
 python-dotenv==1.2.1
 apiflask==3.0.2
 roc-validator==0.8
