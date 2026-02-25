@@ -111,4 +111,6 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     else:
         profile_name = None
 
-    return queue_ro_crate_metadata_validation_task(crate_json, profile_name)
+    profiles_path = current_app.config["PROFILES_PATH"]
+
+    return queue_ro_crate_metadata_validation_task(crate_json, profile_name, profiles_path=profiles_path)
