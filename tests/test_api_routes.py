@@ -141,24 +141,26 @@ def test_validate_fails_missing_elements(client: FlaskClient, crate_id: str, pay
 
 # Test POST API: /v1/ro_crates/validate_metadata
 
+# TODO: Write tests for profiles_path environment variable. This will require a refactoring of the create_app function.
 @pytest.mark.parametrize(
-    "payload, status_code, response_json",
+    "payload, status_code, response_json, profiles_path",
     [
         (
             {
                 "crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "profile_name": "default"
-            }, 200, {"status": "success"}
+            }, 200, {"status": "success"}, None
         ),
         (
             {
                 "crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
-            }, 200, {"status": "success"}
+            }, 200, {"status": "success"}, None
         ),
     ],
     ids=["success_with_all_fields", "success_without_profile_name"]
 )
-def test_validate_metadata_success(client: FlaskClient, payload: dict, status_code: int, response_json: dict):
+def test_validate_metadata_success(client: FlaskClient, payload: dict, status_code: int,
+                                   response_json: dict, profiles_path: str):
     with patch("app.ro_crates.routes.post_routes.queue_ro_crate_metadata_validation_task") as mock_queue:
         mock_queue.return_value = (response_json, status_code)
 
@@ -167,7 +169,7 @@ def test_validate_metadata_success(client: FlaskClient, payload: dict, status_co
         crate_json = payload["crate_json"] if "crate_json" in payload else None
         profile_name = payload["profile_name"] if "profile_name" in payload else None
 
-        mock_queue.assert_called_once_with(crate_json, profile_name)
+        mock_queue.assert_called_once_with(crate_json, profile_name, profiles_path=profiles_path)
         assert response.status_code == status_code
         assert response.json == response_json
 

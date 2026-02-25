@@ -141,32 +141,32 @@ def test_queue_ro_crate_validation_task_failure(
 # Test function: queue_ro_crate_metadata_validation_task
 
 @pytest.mark.parametrize(
-        "crate_json, profile, webhook, status_code, return_value, response_json, delay_side_effect",
+        "crate_json, profile, webhook, status_code, return_value, response_json, delay_side_effect, profiles_path",
         [
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", "http://webhook",
                 202, None, {"message": "Validation in progress"},
-                None
+                None, None
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", None,
                 200, {"status": "ok"}, {"result": {"status": "ok"}},
-                None
+                None, None
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", "http://webhook",
                 500, None, {"error": "Celery error"},
-                Exception("Celery error")
+                Exception("Celery error"), None
             ),
         ],
         ids=["success_with_webhook", "success_without_webhook", "failure_celery_error"]
 )
 def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
                         status_code: int, return_value: dict, response_json: dict,
-                        delay_side_effect: Exception):
+                        delay_side_effect: Exception, profiles_path: str):
     with patch("app.services.validation_service.process_validation_task_by_metadata.delay",
                side_effect=delay_side_effect) as mock_delay:
         mock_result = MagicMock()
@@ -175,9 +175,9 @@ def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
         if delay_side_effect is None:
             mock_delay.return_value = mock_result
 
-        response, status = queue_ro_crate_metadata_validation_task(crate_json, profile, webhook)
+        response, status = queue_ro_crate_metadata_validation_task(crate_json, profile, webhook, profiles_path)
 
-        mock_delay.assert_called_once_with(crate_json, profile, webhook)
+        mock_delay.assert_called_once_with(crate_json, profile, webhook, profiles_path)
         assert status == status_code
         assert response.json == response_json
 
