@@ -106,13 +106,14 @@ def process_validation_task_by_metadata(
     :param crate_json: A string containing the RO-Crate JSON metadata to validate.
     :param profile_name: The name of the validation profile to use. Defaults to None.
     :param webhook_url: The webhook URL to send notifications to. Defaults to None.
+    :param profiles_path: The path to the profiles definition directory. Defaults to None.
     :raises Exception: If an error occurs during the validation process.
 
     :todo: Replace the Crate ID with a more comprehensive system, and replace profile name with URI.
     """
 
     try:
-        logging.info(f"Processing validation task for provided metadata string")
+        logging.info("Processing validation task for provided metadata string")
 
         # Perform validation:
         validation_result = perform_metadata_validation(crate_json,
