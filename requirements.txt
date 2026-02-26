@@ -160,7 +160,7 @@ rich==13.9.4
     #   roc-validator
 rich-click==1.8.9
     # via roc-validator
-roc-validator==0.8.0
+roc-validator==0.8.1
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
