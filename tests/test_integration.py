@@ -6,6 +6,7 @@ import json
 import os
 import docker
 from minio import Minio
+import uuid
 
 
 @pytest.fixture(scope="session")
@@ -17,8 +18,11 @@ def docker_client():
 def docker_compose(docker_client):
     """Start Docker Compose before tests, shut down after."""
     print("Starting Docker Compose...")
+
+    PROJECT = f"test_{uuid.uuid4().hex}"
+
     subprocess.run(
-        ["docker", "compose", "-f", "docker-compose-develop.yml", "up", "-d"],
+        ["docker", "compose", "-f", "docker-compose-develop.yml", "-p", PROJECT, "up", "-d"],
         check=True
     )
     time.sleep(10)  # Wait for services to start — adjust as needed
@@ -35,7 +39,7 @@ def docker_compose(docker_client):
             print(logs)
 
     print("Stopping Docker Compose...")
-    subprocess.run(["docker", "compose", "down"], check=True)
+    subprocess.run(["docker", "compose", "-p", PROJECT, "down", "-v"], check=True)
 
 
 def load_test_data_into_minio():
@@ -50,9 +54,7 @@ def load_test_data_into_minio():
     bucket_name = "ro-crates"
     test_data_dir = "tests/data/ro_crates"
 
-    # Ensure bucket exists
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
+    minio_client.make_bucket(bucket_name)
 
     # Walk and upload files
     for root, _, files in os.walk(test_data_dir):
@@ -333,6 +335,80 @@ def test_directory_rocrate_validation():
         time.sleep(10)
         # GET action and tests
         response = requests.get(url_get, json=payload, headers=headers)
+        response_result = response.json()
+        # Print response for debugging
+        print("Status Code:", response.status_code)
+        print("Response JSON:", response_result)
+
+        elapsed = time.time() - start_time
+        if elapsed > 60:
+            print("60 seconds passed. Exiting loop")
+            break
+
+    # Assertions
+    assert response.status_code == 200
+    assert response_result["passed"] is False
+
+
+def test_extra_profile_rocrate_validation():
+    ro_crate = "ro_crate_2"
+    profile_name = "alpha-crate-0.1"
+    url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    # The API expects the JSON to be passed as a string
+    post_payload = {
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        },
+        "profile_name": profile_name
+    }
+    get_payload = {
+        "minio_config": {
+            "endpoint": "minio:9000",
+            "accesskey": "minioadmin",
+            "secret": "minioadmin",
+            "ssl": False,
+            "bucket": "ro-crates"
+        }
+    }
+
+    # POST action and tests
+    response = requests.post(url_post, json=post_payload, headers=headers)
+    response_result = response.json()['message']
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    # Assertions
+    assert response.status_code == 202
+    assert response_result == "Validation in progress"
+
+    # wait for ro-crate to be validated
+    time.sleep(10)
+
+    # GET action and tests
+    response = requests.get(url_get, json=get_payload, headers=headers)
+    response_result = response.json()
+
+    # Print response for debugging
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response_result)
+
+    start_time = time.time()
+    while response.status_code == 400:
+        time.sleep(10)
+        # GET action and tests
+        response = requests.get(url_get, json=get_payload, headers=headers)
         response_result = response.json()
         # Print response for debugging
         print("Status Code:", response.status_code)

@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def queue_ro_crate_validation_task(
-    minio_config, crate_id, root_path=None, profile_name=None, webhook_url=None
+    minio_config, crate_id, root_path=None, profile_name=None, webhook_url=None,
+    profiles_path=None
 ) -> tuple[Response, int]:
     """
     Queues an RO-Crate for validation with Celery.
@@ -51,7 +52,8 @@ def queue_ro_crate_validation_task(
         raise InvalidAPIUsage(f"No RO-Crate with prefix: {crate_id}", 400)
 
     try:
-        process_validation_task_by_id.delay(minio_config, crate_id, root_path, profile_name, webhook_url)
+        process_validation_task_by_id.delay(minio_config, crate_id, root_path,
+                                            profile_name, webhook_url, profiles_path)
         return jsonify({"message": "Validation in progress"}), 202
 
     except Exception as e:
@@ -59,7 +61,7 @@ def queue_ro_crate_validation_task(
 
 
 def queue_ro_crate_metadata_validation_task(
-    crate_json: str, profile_name=None, webhook_url=None
+    crate_json: str, profile_name=None, webhook_url=None, profiles_path=None
 ) -> tuple[Response, int]:
     """
     Queues an RO-Crate for validation with Celery.
@@ -67,6 +69,7 @@ def queue_ro_crate_metadata_validation_task(
     :param crate_id: The ID of the RO-Crate to validate.
     :param profile_name: The profile to validate against.
     :param webhook_url: The URL to POST the validation results to.
+    :param profiles_path: A path to the profile definition directory.
     :return: A tuple containing a JSON response and an HTTP status code.
     :raises: Exception: If an error occurs whilst queueing the task.
     """
@@ -88,7 +91,8 @@ def queue_ro_crate_metadata_validation_task(
         result = process_validation_task_by_metadata.delay(
                                                      crate_json,
                                                      profile_name,
-                                                     webhook_url
+                                                     webhook_url,
+                                                     profiles_path
                 )
         if webhook_url:
             return jsonify({"message": "Validation in progress"}), 202

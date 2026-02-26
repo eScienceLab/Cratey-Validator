@@ -7,7 +7,7 @@
 from apiflask import APIBlueprint, Schema
 from apiflask.fields import String, Boolean
 from marshmallow.fields import Nested
-from flask import Response
+from flask import Response, current_app
 
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
@@ -81,7 +81,10 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     else:
         profile_name = None
 
-    return queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
+    profiles_path = current_app.config["PROFILES_PATH"]
+
+    return queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name,
+                                          webhook_url, profiles_path)
 
 
 @post_routes_bp.post("/validate_metadata")
@@ -108,4 +111,6 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     else:
         profile_name = None
 
-    return queue_ro_crate_metadata_validation_task(crate_json, profile_name)
+    profiles_path = current_app.config["PROFILES_PATH"]
+
+    return queue_ro_crate_metadata_validation_task(crate_json, profile_name, profiles_path=profiles_path)

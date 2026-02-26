@@ -6,7 +6,9 @@
 #
 amqp==5.3.1
     # via kombu
-apiflask==2.4.0
+annotated-types==0.7.0
+    # via pydantic
+apiflask==3.0.2
     # via -r requirements.in
 apispec==6.8.2
     # via apiflask
@@ -24,7 +26,7 @@ blinker==1.9.0
     # via flask
 cattrs==25.1.1
     # via requests-cache
-celery==5.5.3
+celery==5.6.2
     # via -r requirements.in
 certifi==2025.8.3
     # via
@@ -51,9 +53,13 @@ click-repl==0.3.0
     # via celery
 colorlog==6.9.0
     # via roc-validator
+dnspython==2.8.0
+    # via email-validator
+email-validator==2.3.0
+    # via pydantic
 enum-tools==0.12.0
     # via roc-validator
-flask==3.1.2
+flask==3.1.3
     # via
     #   -r requirements.in
     #   apiflask
@@ -67,6 +73,7 @@ html5rdf==1.2.1
     # via rdflib
 idna==3.10
     # via
+    #   email-validator
     #   requests
     #   url-normalize
 importlib-metadata==8.7.0
@@ -77,7 +84,7 @@ itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
     # via flask
-kombu==5.5.4
+kombu==5.6.2
     # via celery
 markdown-it-py==3.0.0
     # via rich
@@ -86,14 +93,14 @@ markupsafe==3.0.2
     #   flask
     #   jinja2
     #   werkzeug
-marshmallow==4.0.0
+marshmallow==4.1.2
     # via
     #   apiflask
     #   flask-marshmallow
     #   webargs
 mdurl==0.1.2
     # via markdown-it-py
-minio==7.2.16
+minio==7.2.20
     # via -r requirements.in
 owlrl==7.1.4
     # via pyshacl
@@ -117,6 +124,10 @@ pycparser==2.22
     # via cffi
 pycryptodome==3.23.0
     # via minio
+pydantic[email]==2.12.4
+    # via apiflask
+pydantic-core==2.41.5
+    # via pydantic
 pygments==2.19.2
     # via
     #   enum-tools
@@ -127,14 +138,14 @@ pyshacl==0.30.1
     # via roc-validator
 python-dateutil==2.9.0.post0
     # via celery
-python-dotenv==1.1.1
+python-dotenv==1.2.1
     # via -r requirements.in
 rdflib[html]==7.1.4
     # via
     #   owlrl
     #   pyshacl
     #   roc-validator
-redis==6.4.0
+redis==7.2.0
     # via -r requirements.in
 requests==2.32.5
     # via
@@ -149,7 +160,7 @@ rich==13.9.4
     #   roc-validator
 rich-click==1.8.9
     # via roc-validator
-roc-validator==0.7.3
+roc-validator==0.8.1
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
@@ -160,12 +171,21 @@ typing-extensions==4.14.1
     #   cattrs
     #   enum-tools
     #   minio
+    #   pydantic
+    #   pydantic-core
     #   rich-click
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
+typos==1.42.0
+    # via roc-validator
 tzdata==2025.2
     # via kombu
+tzlocal==5.3.1
+    # via celery
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   minio
     #   requests
@@ -181,7 +201,7 @@ wcwidth==0.2.13
     #   prompt-toolkit
 webargs==8.7.0
     # via apiflask
-werkzeug==3.1.3
+werkzeug==3.1.6
     # via
     #   -r requirements.in
     #   flask

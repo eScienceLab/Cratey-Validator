@@ -22,7 +22,7 @@ def flask_app():
 # Test function: queue_ro_crate_validation_task
 
 @pytest.mark.parametrize(
-        "crate_id, rocrate_exists, minio_client, delay_side_effects, payload, status_code, response_dict",
+        "crate_id, rocrate_exists, minio_client, delay_side_effects, payload, profiles_path, status_code, response_dict",
         [
             (
                 "crate123", True, "minio_client", None,
@@ -37,7 +37,9 @@ def flask_app():
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
-                }, 202, {"message": "Validation in progress"}
+                },
+                None,
+                202, {"message": "Validation in progress"}
             ),
             (
                 "crate123", True, "minio_client", Exception("Celery down"),
@@ -52,7 +54,9 @@ def flask_app():
                     "root_path": "base_path",
                     "webhook_url": "https://webhook.example.com",
                     "profile_name": "default"
-                }, 500, {"error": "Celery down"}
+                },
+                None,
+                500, {"error": "Celery down"}
             ),
         ],
         ids=["successful_queue", "celery_server_down"]
@@ -65,7 +69,7 @@ def test_queue_ro_crate_validation_task(
     mock_exists,
     mock_delay,
     flask_app: FlaskClient, crate_id: str, rocrate_exists: bool, minio_client: str,
-    delay_side_effects: Exception, payload: dict, status_code: int, response_dict: dict
+    delay_side_effects: Exception, payload: dict, profiles_path: str, status_code: int, response_dict: dict
 ):
     mock_delay.side_effect = delay_side_effects
     mock_exists.return_value = rocrate_exists
@@ -76,11 +80,12 @@ def test_queue_ro_crate_validation_task(
     profile_name = payload["profile_name"] if "profile_name" in payload else None
     webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
 
-    response, status_code = queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
+    response, status_code = queue_ro_crate_validation_task(minio_config, crate_id, root_path,
+                                                           profile_name, webhook_url, profiles_path)
 
     mock_client.assert_called_once_with(minio_config)
     mock_exists.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, root_path)
-    mock_delay.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url)
+    mock_delay.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url, profiles_path)
     assert status_code == status_code
     assert response.json == response_dict
 
@@ -136,32 +141,32 @@ def test_queue_ro_crate_validation_task_failure(
 # Test function: queue_ro_crate_metadata_validation_task
 
 @pytest.mark.parametrize(
-        "crate_json, profile, webhook, status_code, return_value, response_json, delay_side_effect",
+        "crate_json, profile, webhook, status_code, return_value, response_json, delay_side_effect, profiles_path",
         [
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", "http://webhook",
                 202, None, {"message": "Validation in progress"},
-                None
+                None, None
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", None,
                 200, {"status": "ok"}, {"result": {"status": "ok"}},
-                None
+                None, None
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
                 "default", "http://webhook",
                 500, None, {"error": "Celery error"},
-                Exception("Celery error")
+                Exception("Celery error"), None
             ),
         ],
         ids=["success_with_webhook", "success_without_webhook", "failure_celery_error"]
 )
 def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
                         status_code: int, return_value: dict, response_json: dict,
-                        delay_side_effect: Exception):
+                        delay_side_effect: Exception, profiles_path: str):
     with patch("app.services.validation_service.process_validation_task_by_metadata.delay",
                side_effect=delay_side_effect) as mock_delay:
         mock_result = MagicMock()
@@ -170,9 +175,9 @@ def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
         if delay_side_effect is None:
             mock_delay.return_value = mock_result
 
-        response, status = queue_ro_crate_metadata_validation_task(crate_json, profile, webhook)
+        response, status = queue_ro_crate_metadata_validation_task(crate_json, profile, webhook, profiles_path)
 
-        mock_delay.assert_called_once_with(crate_json, profile, webhook)
+        mock_delay.assert_called_once_with(crate_json, profile, webhook, profiles_path)
         assert status == status_code
         assert response.json == response_json
 
@@ -192,7 +197,8 @@ def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
                 "{}",
                 422, "Required parameter crate_json is empty"
             ),
-        ]
+        ],
+        ids=["missing_crate_json","invalid_json","empty_json"]
 )
 def test_queue_metadata_json_errors(flask_app, crate_json: str, status_code: int, response_error: str):
     response, status = queue_ro_crate_metadata_validation_task(crate_json)
