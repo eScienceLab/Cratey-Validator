@@ -229,16 +229,18 @@ def test_process_validation_failure(
 # Test function: process_validation_task_by_metadata
 
 @pytest.mark.parametrize(
-        "crate_json, profile_name, webhook_url, validation_json, validation_value",
+        "crate_json, profile_name, webhook_url, profiles_path, validation_json, validation_value",
         [
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
                 "test-profile", "https://example.com/webhook",
+                "/app/profiles",
                 '{"status": "valid"}', False
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
                 "test-profile", "https://example.com/webhook",
+                None,
                 '{"status": "invalid"}', True
             )
         ],
@@ -248,7 +250,7 @@ def test_process_validation_failure(
 @mock.patch("app.tasks.validation_tasks.perform_metadata_validation")
 def test_metadata_validation(
     mock_validate, mock_webhook,
-    crate_json: str, profile_name: str, webhook_url: str,
+    crate_json: str, profile_name: str, webhook_url: str, profiles_path: str | None,
     validation_json: str, validation_value: bool,
 ):
     mock_result = mock.Mock()
@@ -256,24 +258,30 @@ def test_metadata_validation(
     mock_result.to_json.return_value = validation_json
     mock_validate.return_value = mock_result
 
-    result = process_validation_task_by_metadata(crate_json, profile_name, webhook_url)
+    result = process_validation_task_by_metadata(
+        crate_json, profile_name, webhook_url, profiles_path
+    )
 
     assert result == validation_json
-    mock_validate.assert_called_once()
+    mock_validate.assert_called_once_with(
+        crate_json, profile_name, profiles_path=profiles_path
+    )
     mock_webhook.assert_called_once_with(webhook_url, validation_json)
 
 
 @pytest.mark.parametrize(
-        "crate_json, profile_name, webhook_url, validation_message",
+        "crate_json, profile_name, webhook_url, profiles_path, validation_message",
         [
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
                 "test-profile", "https://example.com/webhook",
+                "/app/profiles",
                 "Validation error"
             ),
             (
                 '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
                 "test-profile", None,
+                None,
                 "Validation error"
             )
         ],
@@ -283,16 +291,21 @@ def test_metadata_validation(
 @mock.patch("app.tasks.validation_tasks.perform_metadata_validation")
 def test_validation_fails_and_sends_error_notification_to_webhook(
     mock_validate, mock_webhook,
-    crate_json: str, profile_name: str, webhook_url: str,
+    crate_json: str, profile_name: str, webhook_url: str, profiles_path: str | None,
     validation_message: str
 ):
 
     mock_validate.return_value = validation_message
 
-    result = process_validation_task_by_metadata(crate_json, profile_name, webhook_url)
+    result = process_validation_task_by_metadata(
+        crate_json, profile_name, webhook_url, profiles_path
+    )
 
     assert isinstance(result, str)
     assert validation_message in result
+    mock_validate.assert_called_once_with(
+        crate_json, profile_name, profiles_path=profiles_path
+    )
 
     if webhook_url is not None:
         # Error webhook should be sent
