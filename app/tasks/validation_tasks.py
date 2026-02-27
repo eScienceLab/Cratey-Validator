@@ -20,7 +20,7 @@ from app.utils.minio_utils import (
     get_validation_status_from_minio,
     get_minio_client,
     find_rocrate_object_on_minio,
-    find_validation_object_on_minio
+    find_validation_object_on_minio,
 )
 from app.utils.webhook_utils import send_webhook_notification
 
@@ -29,8 +29,12 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def process_validation_task_by_id(
-    minio_config: dict, crate_id: str, root_path: str, profile_name: str | None,
-    webhook_url: str | None, profiles_path: str | None
+    minio_config: dict,
+    crate_id: str,
+    root_path: str,
+    profile_name: str | None,
+    webhook_url: str | None,
+    profiles_path: str | None,
 ) -> None:
     """
     Background task to process the RO-Crate validation by ID.
@@ -52,12 +56,16 @@ def process_validation_task_by_id(
 
     try:
         # Fetch the RO-Crate from MinIO using the provided ID:
-        file_path = fetch_ro_crate_from_minio(minio_client, minio_config["bucket"], crate_id, root_path)
+        file_path = fetch_ro_crate_from_minio(
+            minio_client, minio_config["bucket"], crate_id, root_path
+        )
 
         logging.info(f"Processing validation task for {file_path}")
 
         # Perform validation:
-        validation_result = perform_ro_crate_validation(file_path, profile_name, profiles_path=profiles_path)
+        validation_result = perform_ro_crate_validation(
+            file_path, profile_name, profiles_path=profiles_path
+        )
 
         if isinstance(validation_result, str):
             logging.error(f"Validation failed: {validation_result}")
@@ -70,7 +78,13 @@ def process_validation_task_by_id(
             logging.info(f"RO Crate {crate_id} is invalid.")
 
         # Update the validation status in MinIO:
-        update_validation_status_in_minio(minio_client, minio_config["bucket"], crate_id, root_path, validation_result.to_json())
+        update_validation_status_in_minio(
+            minio_client,
+            minio_config["bucket"],
+            crate_id,
+            root_path,
+            validation_result.to_json(),
+        )
 
         # TODO: Prepare the data to send to the webhook, and send the webhook notification.
 
@@ -98,7 +112,10 @@ def process_validation_task_by_id(
 
 @celery.task
 def process_validation_task_by_metadata(
-    crate_json: str, profile_name: str | None, webhook_url: str | None, profiles_path: Optional[str] = None
+    crate_json: str,
+    profile_name: str | None,
+    webhook_url: str | None,
+    profiles_path: Optional[str] = None,
 ) -> ValidationResult | str:
     """
     Background task to process the RO-Crate validation for a given json metadata string.
@@ -116,10 +133,9 @@ def process_validation_task_by_metadata(
         logging.info("Processing validation task for provided metadata string")
 
         # Perform validation:
-        validation_result = perform_metadata_validation(crate_json,
-                                                        profile_name,
-                                                        profiles_path
-                                                        )
+        validation_result = perform_metadata_validation(
+            crate_json, profile_name, profiles_path=profiles_path
+        )
 
         if isinstance(validation_result, str):
             logging.error(f"Validation failed: {validation_result}")
@@ -150,7 +166,10 @@ def process_validation_task_by_metadata(
 
 
 def perform_ro_crate_validation(
-    file_path: str, profile_name: str | None, skip_checks_list: Optional[list] = None, profiles_path: Optional[str] = None
+    file_path: str,
+    profile_name: str | None,
+    skip_checks_list: Optional[list] = None,
+    profiles_path: Optional[str] = None,
 ) -> ValidationResult | str:
     """
     Validates an RO-Crate using the provided file path and profile name.
@@ -177,7 +196,7 @@ def perform_ro_crate_validation(
             rocrate_uri=full_file_path,
             **({"profile_identifier": profile_name} if profile_name else {}),
             **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
-            **({"profiles_path": profiles_path} if profiles_path else {})
+            **({"profiles_path": profiles_path} if profiles_path else {}),
         )
 
         return services.validate(settings)
@@ -188,7 +207,10 @@ def perform_ro_crate_validation(
 
 
 def perform_metadata_validation(
-    crate_json: str, profile_name: str | None, skip_checks_list: Optional[list] = None, profiles_path: Optional[str] = None
+    crate_json: str,
+    profile_name: str | None,
+    skip_checks_list: Optional[list] = None,
+    profiles_path: Optional[str] = None,
 ) -> ValidationResult | str:
     """
     Validates only RO-Crate metadata provided as a json string.
@@ -210,7 +232,7 @@ def perform_metadata_validation(
             **({"metadata_dict": json.loads(crate_json)}),
             **({"profile_identifier": profile_name} if profile_name else {}),
             **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
-            **({"profiles_path": profiles_path} if profiles_path else {})
+            **({"profiles_path": profiles_path} if profiles_path else {}),
         )
 
         return services.validate(settings)
@@ -221,10 +243,10 @@ def perform_metadata_validation(
 
 
 def check_ro_crate_exists(
-        minio_client: object,
-        bucket_name: str,
-        crate_id: str,
-        root_path: str,
+    minio_client: object,
+    bucket_name: str,
+    crate_id: str,
+    root_path: str,
 ) -> bool:
     """
     Checks for the existence of an RO-Crate using the provided Crate ID.
@@ -245,10 +267,10 @@ def check_ro_crate_exists(
 
 
 def check_validation_exists(
-        minio_client: object,
-        bucket_name: str,
-        crate_id: str,
-        root_path: str,
+    minio_client: object,
+    bucket_name: str,
+    crate_id: str,
+    root_path: str,
 ) -> bool:
     """
     Checks for the existence of a validation result using the provided Crate ID.
@@ -269,10 +291,10 @@ def check_validation_exists(
 
 
 def return_ro_crate_validation(
-        minio_client: object,
-        bucket_name: str,
-        crate_id: str,
-        root_path: str,
+    minio_client: object,
+    bucket_name: str,
+    crate_id: str,
+    root_path: str,
 ) -> dict | str:
     """
     Retrieves the validation result for an RO-Crate using the provided Crate ID.
@@ -284,4 +306,6 @@ def return_ro_crate_validation(
 
     logging.info(f"Fetching validation result for RO-Crate {crate_id}")
 
-    return get_validation_status_from_minio(minio_client, bucket_name, crate_id, root_path)
+    return get_validation_status_from_minio(
+        minio_client, bucket_name, crate_id, root_path
+    )
