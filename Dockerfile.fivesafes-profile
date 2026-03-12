@@ -1,0 +1,40 @@
+FROM python:3.11-slim
+
+ARG FIVE_SAFES_PROFILE_VERSION=five-safes-0.7.3-beta
+ARG PROFILES_ARCHIVE_URL=https://github.com/eScienceLab/rocrate-validator/archive/refs/tags/${FIVE_SAFES_PROFILE_VERSION}.tar.gz
+
+# Install required system packages, including git
+RUN apt-get update && apt-get install -y git wget && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY cratey.py LICENSE /app/
+COPY app /app/app
+RUN <<EOF_WRF
+mkdir -p /app/profiles
+wget -O /tmp/rocrate-validator-profiles.tar.gz "$PROFILES_ARCHIVE_URL"
+tar -xzf /tmp/rocrate-validator-profiles.tar.gz \
+    -C /app/profiles \
+    --strip-components=3 \
+    "rocrate-validator-${FIVE_SAFES_PROFILE_VERSION}/rocrate_validator/profiles/five-safes-crate"
+rm /tmp/rocrate-validator-profiles.tar.gz
+EOF_WRF
+
+RUN useradd -ms /bin/bash flaskuser
+RUN chown -R flaskuser:flaskuser /app
+
+ENV FIVE_SAFES_PROFILE_VERSION=${FIVE_SAFES_PROFILE_VERSION}
+ENV PROFILES_PATH=/app/profiles
+
+USER flaskuser
+
+EXPOSE 5000
+
+CMD ["flask", "run", "--host=0.0.0.0"]
+
+LABEL org.opencontainers.image.source="https://github.com/eScienceLab/Cratey-Validator"
+LABEL org.cratey.five-safes-profile-version="${FIVE_SAFES_PROFILE_VERSION}"
