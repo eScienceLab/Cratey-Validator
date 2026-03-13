@@ -16,7 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY cratey.py LICENSE /app/
 COPY app /app/app
 RUN <<EOF_WRF
-mkdir -p /app/profiles
 wget -O /tmp/rocrate-validator-profiles.tar.gz "$PROFILES_ARCHIVE_URL"
 tar -xzf /tmp/rocrate-validator-profiles.tar.gz \
     -C /usr/local/lib/python${PY_VER}/site-packages/rocrate_validator/profiles/ \
@@ -29,7 +28,6 @@ RUN useradd -ms /bin/bash flaskuser
 RUN chown -R flaskuser:flaskuser /app
 
 ENV FIVE_SAFES_PROFILE_VERSION=${FIVE_SAFES_PROFILE_VERSION}
-ENV PROFILES_PATH=/app/profiles
 
 USER flaskuser
 
