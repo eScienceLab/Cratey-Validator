@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 
-ARG FIVE_SAFES_PROFILE_VERSION=five-safes-0.7.3-beta
+ARG FIVE_SAFES_PROFILE_VERSION=five-safes-0.7.4-beta
 ARG PROFILES_ARCHIVE_URL=https://github.com/eScienceLab/rocrate-validator/archive/refs/tags/${FIVE_SAFES_PROFILE_VERSION}.tar.gz
+ARG PY_VER=3.11
 
 # Install required system packages, including git
 RUN apt-get update && apt-get install -y git wget && rm -rf /var/lib/apt/lists/*
@@ -18,7 +19,7 @@ RUN <<EOF_WRF
 mkdir -p /app/profiles
 wget -O /tmp/rocrate-validator-profiles.tar.gz "$PROFILES_ARCHIVE_URL"
 tar -xzf /tmp/rocrate-validator-profiles.tar.gz \
-    -C /app/profiles \
+    -C /usr/local/lib/python${PY_VER}/site-packages/rocrate_validator/profiles/ \
     --strip-components=3 \
     "rocrate-validator-${FIVE_SAFES_PROFILE_VERSION}/rocrate_validator/profiles/five-safes-crate"
 rm /tmp/rocrate-validator-profiles.tar.gz
