@@ -147,7 +147,7 @@ rdflib[html]==7.1.4
     #   roc-validator
 redis==7.4.0
     # via -r requirements.in
-requests==2.33.0
+requests==2.33.1
     # via
     #   -r requirements.in
     #   requests-cache
