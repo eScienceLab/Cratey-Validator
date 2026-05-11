@@ -8,11 +8,6 @@ on:
 
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -61,14 +56,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
       - name: Restore cache
         uses: actions/cache@v4
         with:
           path: |
-            .next/cache
+            docs/website-src/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
@@ -81,12 +73,7 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
         working-directory: docs/website-src
 
-      - name: Copy built files to docs
-        run: |
-          rm -rf docs/website/*
-          cp -r docs/website-src/out docs/website/
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/website
+          path: docs/website-src/out
