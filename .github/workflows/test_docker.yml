@@ -3,6 +3,11 @@ name: Integration Tests
 on:
   pull_request:
     branches: [ develop ]
+    paths:
+      - "app/**"
+      - "tests/**"
+
+  workflow_dispatch:
 
 jobs:
   test:
