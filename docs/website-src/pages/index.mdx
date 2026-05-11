@@ -1,0 +1,14 @@
+import { Cards } from 'nextra/components'
+import { Steps,Callout } from "nextra/components"
+
+<div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "2rem" }}>
+
+  ### Validating Metadata Packaging in RO-Crates
+
+</div>
+
+Metadata can be transported via an RO-Crate. To consume this metadata we need to ensure that the RO-Crate follows well defined standards.
+
+## Approach
+
+Load the RO-Crate into a Min-IO instance, and run the validator on this.
