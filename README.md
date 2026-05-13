@@ -145,7 +145,7 @@ curl -X 'POST' \
  -H 'accept: application/json' \
  -H 'Content-Type: application/json' \
  -d '{
- "crate_json": "{'\''test1'\'':'\''test2'\''}"
+ "crate_json": "{\"test1\":\"test2\"}"
  }'
 ```
 
