@@ -1,3 +1,216 @@
-# RO-Crate Validator
+# RO-Crate Validator Service
 
-Describe the RO-Crate validator here.
+Date: 2026-05-14
+
+## Service Snapshot
+
+Cratey Validator is a web service that checks whether RO-Crates follow the expected structure and metadata rules. It can validate a full RO-Crate stored in MinIO-compatible object storage, or it can validate only the contents of an `ro-crate-metadata.json` file.
+
+At a high level, a client sends a validation request, the service runs the RO-Crate validation checks, and the result is either returned directly or saved so it can be retrieved later.
+
+The service is exposed through the following three endpoints:
+
+- `POST /v1/ro_crates/{crate_id}/validation`
+  Validates an RO-Crate that already exists in MinIO. The service queues a background task, downloads the crate, runs the validation checks, and saves the validation result back to MinIO.
+
+- `POST /v1/ro_crates/validate_metadata`
+  Validates RO-Crate metadata directly. This route is useful when the caller only needs to check the crate metadata file and does not need the service to download a full crate from object storage.
+
+- `GET /v1/ro_crates/{crate_id}/validation`
+  Retrieves the saved validation result for an RO-Crate that was previously validated from MinIO.
+
+## Current Architecture
+
+The service is built as a Flask/APIFlask web API backed by Celery workers for longer-running validation jobs. RO-Crates are read from MinIO-compatible object storage, Redis is used by Celery to pass work between the API and the worker, and validation is performed by the CRS4 `rocrate_validator` library.
+
+The project is organized into a few clear areas:
+
+API layer:
+
+- `cratey.py` starts the Flask application.
+- `app/__init__.py` creates the APIFlask app, registers route blueprints, loads environment-specific config, and wires Celery into the Flask context.
+- `app/ro_crates/routes/post_routes.py` exposes validation request endpoints.
+- `app/ro_crates/routes/get_routes.py` exposes validation result retrieval.
+
+Service and task layer:
+
+- `app/services/validation_service.py` performs request-level validation, object existence checks, and queues Celery tasks.
+- `app/tasks/validation_tasks.py` runs the actual RO-Crate and metadata validation workflows.
+
+Utility layer:
+
+- `app/utils/minio_utils.py` handles MinIO client setup, object discovery, download, upload, and result retrieval.
+- `app/utils/webhook_utils.py` sends webhook notifications.
+
+Deployment and local development:
+
+- `docker-compose.yml` runs the published container image with Flask, Celery, Redis, and MinIO.
+- `docker-compose-develop.yml` builds the local Dockerfile and mounts a local profile directory for development.
+
+## Runtime Flow
+
+### Validate RO-Crate From MinIO
+
+1. Client sends a request to `POST /v1/ro_crates/{crate_id}/validation`.
+2. Request includes `minio_config` and optional `root_path`, `profile_name`, and `webhook_url`.
+3. Flask route passes the request to `queue_ro_crate_validation_task`.
+4. Service creates a MinIO client and checks that the target crate exists.
+5. Celery queues `process_validation_task_by_id`.
+6. Worker downloads the RO-Crate into a temporary local path.
+7. Worker runs `rocrate_validator.services.validate`.
+8. Validation JSON is uploaded to MinIO at:
+   - `{crate_id}_validation/validation_status.txt`
+   - or `{root_path}/{crate_id}_validation/validation_status.txt`
+9. Temporary files are removed.
+10. If configured, a webhook receives the validation result or error payload. (We need to check this with Alex!)
+
+### Retrieve Validation Result
+
+1. Client sends `GET /v1/ro_crates/{crate_id}/validation`.
+2. Request includes `minio_config` and optional `root_path`.
+3. Service checks that both the RO-Crate and validation result exist in MinIO.
+4. Stored validation JSON is returned to the client.
+
+### Validate Metadata Directly
+
+1. Client sends `POST /v1/ro_crates/validate_metadata`.
+2. Request includes `crate_json` and optional `profile_name`.
+3. Service verifies that `crate_json` is present, valid JSON, and non-empty.
+4. Celery runs `process_validation_task_by_metadata`.
+5. If no webhook is provided, the API waits for the Celery result and returns validation output synchronously.
+6. If a webhook is provided, the request returns `202` and the webhook receives the result later. (We need to check this with Alex!)
+
+## API Surface
+
+### `POST /v1/ro_crates/{crate_id}/validation`
+
+Queues validation for an RO-Crate stored in MinIO. The `crate_id` path parameter is the name used to find the crate object in the configured bucket.
+
+Request body:
+
+```jsonc
+{
+  "minio_config": {
+    "endpoint": "string",   // required, e.g. "localhost:9000" or "minio:9000"
+    "accesskey": "string",  // required, MinIO access key or username
+    "secret": "string",     // required, MinIO secret key or password
+    "ssl": false,           // required, true when the MinIO endpoint uses HTTPS
+    "bucket": "string"      // required, bucket containing the RO-Crate
+  },
+  "root_path": "string",     // optional folder/path inside the bucket
+  "profile_name": "string",  // optional validation profile name
+  "webhook_url": "string"    // optional callback URL for the result
+}
+```
+
+Expected responses:
+
+- `202`: validation queued.
+- `400`: RO-Crate does not exist or validation request cannot be satisfied.
+- `500`: internal service, MinIO, Celery, or validation error.
+
+### `GET /v1/ro_crates/{crate_id}/validation`
+
+Fetches the latest validation result from MinIO.
+
+Request body:
+
+```jsonc
+{
+  "minio_config": {
+    "endpoint": "string",   // required, e.g. "localhost:9000" or "minio:9000"
+    "accesskey": "string",  // required, MinIO access key or username
+    "secret": "string",     // required, MinIO secret key or password
+    "ssl": false,           // required, true when the MinIO endpoint uses HTTPS
+    "bucket": "string"      // required, bucket containing the RO-Crate
+  },
+  "root_path": "string"     // optional folder/path inside the bucket
+}
+```
+
+Expected responses:
+
+- `200`: validation result JSON returned.
+- `400`: RO-Crate or validation result is missing.
+- `500`: MinIO or internal retrieval error.
+
+### `POST /v1/ro_crates/validate_metadata`
+
+Validates a submitted RO-Crate metadata JSON string.
+
+Request body:
+
+```jsonc
+{
+  "crate_json": "string",   // required, stringified content of ro-crate-metadata.json
+  "profile_name": "string"  // optional validation profile name
+}
+```
+
+Expected responses:
+
+- `200`: validation result returned.
+- `202`: validation queued when asynchronous webhook mode is used by the service layer.
+- `422`: missing, malformed, or empty metadata JSON.
+- `500`: internal validation error.
+
+## Standing up the service
+
+### Local Development
+
+The service can be started with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+For local container development, use:
+
+```bash
+docker compose --file docker-compose-develop.yml up --build
+```
+
+Expected local services:
+
+- Flask API: `http://localhost:5001`
+- MinIO API: `http://localhost:9000`
+- MinIO console: `http://localhost:9001`
+- Redis: `localhost:6379`
+
+MinIO needs a bucket for RO-Crates, normally `ro-crates`. Bucket versioning should be enabled so uploaded crate objects can be tracked reliably.
+
+
+### Production Deployment
+(I guess this would be the same??)
+
+## Configuration
+
+The main environment variables are:
+
+- `FLASK_APP`: Flask entrypoint, normally `cratey.py`.
+- `FLASK_ENV`: selects development or production config.
+- `CELERY_BROKER_URL`: Redis broker URL.
+- `CELERY_RESULT_BACKEND`: Redis result backend URL.
+- `PROFILES_PATH`: optional path to custom RO-Crate validator profile definitions.
+- `MINIO_ENDPOINT`: default MinIO endpoint used by Docker examples.
+- `MINIO_ROOT_USER`: MinIO root username for local development.
+- `MINIO_ROOT_PASSWORD`: MinIO root password for local development.
+- `MINIO_BUCKET_NAME`: default bucket name used by local setup.
+
+API calls also pass MinIO access details in `minio_config`, so the service can validate crates in a specified object store and bucket.
+
+## Test Coverage
+
+Current tests cover the main service seams:
+
+- API route request validation and route-to-service wiring.
+- Validation service queueing behavior and error handling.
+- Celery task behavior for RO-Crate validation and metadata validation.
+- MinIO helper behavior.
+- Integration-level service paths.
+
+Run tests with:
+
+```bash
+pytest
+```
