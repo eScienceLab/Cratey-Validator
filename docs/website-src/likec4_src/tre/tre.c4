@@ -1,0 +1,32 @@
+model {
+  extend tre {
+    tre_app = service {
+      title 'TRE Application'
+      description 'Application managing tasks in the TRE'
+
+      -> tre_keycloak 'Authenticates requests via'
+      -> minio 'Stores and retrieves data from'
+      -> ro-crate_validator.validator_api 'Sends validation tasks to'
+      -> ro-crate_validator.validator_api 'Receives validation results from'
+    }
+
+    tre_keycloak = component {
+      title 'TRE Keycloak'
+      description 'Authenticates requests throughout the layer'
+      icon https://upload.wikimedia.org/wikipedia/commons/2/29/Keycloak_Logo.png
+    }
+    
+    minio = component {
+      title 'Minio'
+      description 'S3 Object Store'
+      icon https://dl.min.io/logo/Minio_logo_light/Minio_logo_light.png
+    }
+  }
+}
+
+views {
+  view tre of tre {
+    title 'TRE Service'
+    include *
+  }
+}
