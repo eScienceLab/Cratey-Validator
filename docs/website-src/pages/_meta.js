@@ -9,5 +9,7 @@ export default {
       
     }
   },
-  crate_validator: "Crate Validator",
+  deployment: "Deployment",
+  rest_api: "REST API",
+  development: "Development"
 }
