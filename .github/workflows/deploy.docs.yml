@@ -30,15 +30,15 @@ jobs:
         uses: likec4/actions@v1
         with:
           codegen: react
-          path: docs/website/likec4_src
-          output: docs/website/likec4_react/likec4.generated.js
+          path: docs/website-src/likec4_src
+          output: docs/website-src/likec4_react/likec4.generated.js
 
       - name: LikeC4 PNG export
         uses: likec4/actions@v1
         with:
           export: png
-          path: docs/website/likec4_src
-          output: docs/website/public/images/likec4
+          path: docs/website-src/likec4_src
+          output: docs/website-src/public/images/likec4
 
       - name: Detect package manager
         id: detect-package-manager
