@@ -1,7 +1,6 @@
 export default {
   index: {
-    title: "About us",
-    description: "RO-Crate Validation Service",
+    title: "RO-Crate Validation Service",
     theme: {
       breadcrumb: false,
       layout: 'full',
