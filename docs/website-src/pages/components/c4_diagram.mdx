@@ -1,0 +1,31 @@
+import { useState } from "react";
+import { LikeC4View } from "../../likec4_react/likec4.generated";
+
+export default function Diagram({
+  alt_image = "/images/likec4_index.png",
+  alt_text = "Architecture diagram",
+  viewId = "index",
+}) {
+  const [interactive, setInteractive] = useState(false);
+
+if (!interactive) {
+return (
+
+<div style={{ width: "100%" }}>
+<img
+src={alt_image}
+alt={alt_text}
+style={{ width: "100%", cursor: "pointer" }}
+onClick={() => setInteractive(true)}
+/>
+</div>
+);
+}
+
+return (
+
+<div style={{ width: "100%" }}>
+<LikeC4View viewId={viewId} />
+</div>
+);
+}
