@@ -17,6 +17,13 @@ def get_env(name: str, default=None, required=False):
     return value
 
 
+def get_bool_env(name: str, default: bool = False) -> bool:
+    value = get_env(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("true", "1", "yes", "on")
+
+
 class Config:
     """Base configuration class for the Flask application."""
 
@@ -27,14 +34,20 @@ class Config:
     # rocrate validator configuration:
     PROFILES_PATH = get_env("PROFILES_PATH", required=False)
 
+    # Optional MinIO storage. Disabled by default - when False the
+    # ID validation endpoints are not registered:
+    MINIO_ENABLED = get_bool_env("MINIO_ENABLED", default=False)
+
 
 class DevelopmentConfig(Config):
     """Development configuration class."""
+
     DEBUG = True
 
 
 class ProductionConfig(Config):
     """Production configuration class."""
+
     DEBUG = False
 
 
@@ -50,7 +63,7 @@ class InvalidAPIUsage(Exception):
 
     def to_dict(self):
         rv = dict(self.payload or ())
-        rv['message'] = self.message
+        rv["message"] = self.message
         return rv
 
 

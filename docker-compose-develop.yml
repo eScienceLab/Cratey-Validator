@@ -12,6 +12,9 @@ services:
       - FLASK_ENV=development
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Optional object storage. Set MINIO_ENABLED=true and start the "minio"
+      # profile (docker compose --profile minio up) to use 
+      - MINIO_ENABLED=${MINIO_ENABLED:-false}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
@@ -19,7 +22,6 @@ services:
       - PROFILES_PATH=/app/profiles
     depends_on:
       - redis
-      - minio
 
   celery_worker:
     build:
@@ -29,9 +31,9 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MINIO_ENABLED=${MINIO_ENABLED:-false}
     depends_on:
       - redis
-      - minio
     volumes:
       - ./tests/data/rocrate_validator_profiles:/app/profiles:ro
 
@@ -42,6 +44,9 @@ services:
 
   minio:
     image: "minio/minio"
+    # Started with `docker compose --profile minio up`.
+    profiles:
+      - minio
     ports:
       - "9000:9000"
       - "9001:9001"
