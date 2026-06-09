@@ -21,7 +21,7 @@ def docker_compose(docker_client):
 
     PROJECT = f"test_{uuid.uuid4().hex}"
 
-    # Intergration tests use the MinIO endpoints, so enable
+    # Integration tests use the MinIO endpoints, so enable
     # MinIO and start the opt-in "minio" compose profile.
     compose_env = {**os.environ, "MINIO_ENABLED": "true"}
 
