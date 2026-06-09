@@ -21,9 +21,25 @@ def docker_compose(docker_client):
 
     PROJECT = f"test_{uuid.uuid4().hex}"
 
+    # Integration tests use the MinIO endpoints, so enable
+    # MinIO and start the opt-in "minio" compose profile.
+    compose_env = {**os.environ, "MINIO_ENABLED": "true"}
+
     subprocess.run(
-        ["docker", "compose", "-f", "docker-compose-develop.yml", "-p", PROJECT, "up", "-d"],
-        check=True
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose-develop.yml",
+            "-p",
+            PROJECT,
+            "--profile",
+            "minio",
+            "up",
+            "-d",
+        ],
+        check=True,
+        env=compose_env,
     )
     time.sleep(10)  # Wait for services to start — adjust as needed
 
@@ -39,7 +55,21 @@ def docker_compose(docker_client):
             print(logs)
 
     print("Stopping Docker Compose...")
-    subprocess.run(["docker", "compose", "-p", PROJECT, "down", "-v"], check=True)
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose-develop.yml",
+            "-p",
+            PROJECT,
+            "--profile",
+            "minio",
+            "down",
+            "-v",
+        ],
+        check=True,
+    )
 
 
 def load_test_data_into_minio():
@@ -48,7 +78,7 @@ def load_test_data_into_minio():
         endpoint="localhost:9000",
         access_key="minioadmin",
         secret_key="minioadmin",
-        secure=False
+        secure=False,
     )
 
     bucket_name = "ro-crates"
@@ -68,10 +98,7 @@ def load_test_data_into_minio():
 
 def test_validate_metadata():
     url = "http://localhost:5001/v1/ro_crates/validate_metadata"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # Load the JSON from file
     filepath = os.path.join("tests/data", "ro-crate-metadata.json")
@@ -79,13 +106,11 @@ def test_validate_metadata():
         crate_json_data = json.load(f)
 
     # The API expects the JSON to be passed as a string
-    payload = {
-        "crate_json": json.dumps(crate_json_data)
-    }
+    payload = {"crate_json": json.dumps(crate_json_data)}
 
     response = requests.post(url, json=payload, headers=headers)
 
-    response_result = json.loads(response.json()['result'])
+    response_result = json.loads(response.json()["result"])
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -93,16 +118,13 @@ def test_validate_metadata():
 
     # Assertions — update based on expected API behavior
     assert response.status_code == 200
-    assert response_result['passed'] is True
+    assert response_result["passed"] is True
 
 
 def test_no_rocrate_for_validation():
     ro_crate = "ro_crate_10"
     url = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -111,7 +133,7 @@ def test_no_rocrate_for_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
@@ -125,16 +147,13 @@ def test_no_rocrate_for_validation():
 
     # Assertions — update based on expected API behavior
     assert response.status_code == 400
-    assert response_result['message'] == f"No RO-Crate with prefix: {ro_crate}"
+    assert response_result["message"] == f"No RO-Crate with prefix: {ro_crate}"
 
 
 def test_no_validation_result_for_missing_crate():
     ro_crate = "ro_crate_10"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -143,7 +162,7 @@ def test_no_validation_result_for_missing_crate():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
@@ -157,16 +176,13 @@ def test_no_validation_result_for_missing_crate():
 
     # Assertions
     assert response.status_code == 400
-    assert response_result['message'] == f"No RO-Crate with prefix: {ro_crate}"
+    assert response_result["message"] == f"No RO-Crate with prefix: {ro_crate}"
 
 
 def test_get_existing_validation_result():
     ro_crate = "ro_crate_3"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -175,7 +191,7 @@ def test_get_existing_validation_result():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
@@ -195,10 +211,7 @@ def test_get_existing_validation_result():
 def test_rocrate_not_validated_yet():
     ro_crate = "ro_crate_not_validated"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -207,7 +220,7 @@ def test_rocrate_not_validated_yet():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
@@ -221,17 +234,17 @@ def test_rocrate_not_validated_yet():
 
     # Assertions
     assert response.status_code == 400
-    assert response_result['message'] == f"No validation result yet for RO-Crate: {ro_crate}"
+    assert (
+        response_result["message"]
+        == f"No validation result yet for RO-Crate: {ro_crate}"
+    )
 
 
 def test_zipped_rocrate_validation():
     ro_crate = "ro_crate_1"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -240,13 +253,13 @@ def test_zipped_rocrate_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -291,10 +304,7 @@ def test_directory_rocrate_validation():
     ro_crate = "ro_crate_2"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -303,13 +313,13 @@ def test_directory_rocrate_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -355,10 +365,7 @@ def test_extra_profile_rocrate_validation():
     profile_name = "alpha-crate-0.1"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     post_payload = {
@@ -367,9 +374,9 @@ def test_extra_profile_rocrate_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         },
-        "profile_name": profile_name
+        "profile_name": profile_name,
     }
     get_payload = {
         "minio_config": {
@@ -377,13 +384,13 @@ def test_extra_profile_rocrate_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
     # POST action and tests
     response = requests.post(url_post, json=post_payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -427,10 +434,7 @@ def test_extra_profile_rocrate_validation():
 def test_ignore_rocrates_not_on_basepath():
     ro_crate = "ro_crate_4"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -439,13 +443,13 @@ def test_ignore_rocrates_not_on_basepath():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         }
     }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -461,10 +465,7 @@ def test_zipped_rocrate_in_subdirectory_validation():
     subdir_path = "project_a"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -473,14 +474,14 @@ def test_zipped_rocrate_in_subdirectory_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         },
-        "root_path" : subdir_path
+        "root_path": subdir_path,
     }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)
@@ -526,10 +527,7 @@ def test_directory_rocrate_in_subdirectory_validation():
     subdir_path = "project_a"
     url_post = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
     url_get = f"http://localhost:5001/v1/ro_crates/{ro_crate}/validation"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
 
     # The API expects the JSON to be passed as a string
     payload = {
@@ -538,14 +536,14 @@ def test_directory_rocrate_in_subdirectory_validation():
             "accesskey": "minioadmin",
             "secret": "minioadmin",
             "ssl": False,
-            "bucket": "ro-crates"
+            "bucket": "ro-crates",
         },
-        "root_path" : subdir_path
+        "root_path": subdir_path,
     }
 
     # POST action and tests
     response = requests.post(url_post, json=payload, headers=headers)
-    response_result = response.json()['message']
+    response_result = response.json()["message"]
 
     # Print response for debugging
     print("Status Code:", response.status_code)

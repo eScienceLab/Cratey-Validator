@@ -2,6 +2,19 @@
 
 This project presents a Flask-based API for validating RO-Crates.
 
+### Optional MinIO object storage
+
+The RO-Crate Validation Service can validate an RO-Crate's metadata directly from a JSON payload (the `POST v1/ro_crates/validate_metadata` endpoint) without storing anything. This is the default mode.
+
+Optionally, the service can read crates from — and write validation results
+back to — a [MinIO](https://min.io/) object store. This is disabled by
+default and controlled by the `MINIO_ENABLED` environment variable:
+
+- `MINIO_ENABLED=false` (default): only a stateless validation endpoint is available and nothing is stored.
+- `MINIO_ENABLED=true`: the ID endpoints (`POST`/`GET v1/ro_crates/{crate_id}/validation`) are also registered, and a MinIO instance is required. With Docker Compose, start MinIO with its opt-in profile: `docker compose --profile minio up`.
+
+When MinIO is disabled the ID-based endpoints are not registered and return `404`.
+
 ## API
 
 #### Request Validation of RO-Crate
@@ -184,8 +197,14 @@ curl -X 'POST' \
     ```bash
    docker compose up --build
    ```
+   This runs in the default (metadata-only) mode. To enable the MinIO-backed
+   endpoints, set `MINIO_ENABLED=true` in your `.env` and start the `minio`
+   profile:
+    ```bash
+   docker compose --profile minio up --build
+   ```
 
-5. Set up the MinIO bucket
+5. **(Only when `MINIO_ENABLED=true`)** Set up the MinIO bucket
    1. Open the MinIO web interface at `http://localhost:9000`.  
    2. Log in with your MinIO credentials.  
    3. Create a new bucket named `ro-crates`.  

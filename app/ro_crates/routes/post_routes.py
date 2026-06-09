@@ -11,10 +11,15 @@ from flask import Response, current_app
 
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
-    queue_ro_crate_metadata_validation_task
+    queue_ro_crate_metadata_validation_task,
 )
 
+# Always-on blueprint:
 post_routes_bp = APIBlueprint("post_routes", __name__)
+
+# MinIO blueprint. Only registered when MINIO_ENABLED is true
+# (see app.create_app), so the ID-based routes are unreachable by default.
+minio_post_routes_bp = APIBlueprint("minio_post_routes", __name__)
 
 
 class MinioConfig(Schema):
@@ -37,8 +42,8 @@ class ValidateJSON(Schema):
     profile_name = String(required=False)
 
 
-@post_routes_bp.post("<string:crate_id>/validation")
-@post_routes_bp.input(ValidateCrate(partial=False), location='json')
+@minio_post_routes_bp.post("<string:crate_id>/validation")
+@minio_post_routes_bp.input(ValidateCrate(partial=False), location="json")
 def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate using its ID from MinIO.
@@ -52,7 +57,7 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
       - **accesskey**: Access key / username
       - **secret**: Secret / password
       - **ssl**: Use SSL encryption? True/False
-      - **bucket**: The MinIO bucket to access 
+      - **bucket**: The MinIO bucket to access
     - **root_path**: The root path containing the RO-Crate. _Optional_
     - **profile_name**: The profile name for validation. _Optional_.
     - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
@@ -83,12 +88,13 @@ def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
 
     profiles_path = current_app.config["PROFILES_PATH"]
 
-    return queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name,
-                                          webhook_url, profiles_path)
+    return queue_ro_crate_validation_task(
+        minio_config, crate_id, root_path, profile_name, webhook_url, profiles_path
+    )
 
 
 @post_routes_bp.post("/validate_metadata")
-@post_routes_bp.input(ValidateJSON(partial=False), location='json')  # -> json_data
+@post_routes_bp.input(ValidateJSON(partial=False), location="json")  # -> json_data
 def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
     Endpoint to validate an RO-Crate JSON file uploaded to the Service.
@@ -113,4 +119,6 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
 
     profiles_path = current_app.config["PROFILES_PATH"]
 
-    return queue_ro_crate_metadata_validation_task(crate_json, profile_name, profiles_path=profiles_path)
+    return queue_ro_crate_metadata_validation_task(
+        crate_json, profile_name, profiles_path=profiles_path
+    )
