@@ -1,18 +1,12 @@
 """Initialises and configures Flask, integrates Celery, and registers application blueprints."""
 
-# Author: Alexander Hambley
-# License: MIT
-# Copyright (c) 2025 eScience Lab, The University of Manchester
-
 import logging
-import os
 
 from apiflask import APIFlask
 
 from app.ro_crates.routes import v1_post_bp, v1_minio_post_bp, v1_minio_get_bp
 from app.utils.config import (
-    DevelopmentConfig,
-    ProductionConfig,
+    Settings,
     InvalidAPIUsage,
     make_celery,
 )
@@ -21,34 +15,39 @@ from flask import jsonify
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> APIFlask:
+def create_app(settings: Settings | None = None) -> APIFlask:
     """
-    Creates and configures Flask application.
+    Creates and configures the Flask application.
 
-    :return: Flask: A configured Flask application instance.
+    Configuration is loaded and validated up front via :class:`Settings`, so a
+    misconfigured deployment fails at startup with a clear error rather than at
+    the first request. A ``settings`` object may be injected for testing.
+
+    :param settings: Pre-built settings; if omitted, loaded from the environment.
+    :return: A configured Flask application instance.
+    :raises ConfigError: If required configuration is missing or invalid.
     """
+    if settings is None:
+        settings = Settings.from_env()
+
     app = APIFlask(__name__)
 
-    # Load config before registering blueprints, so MINIO_ENABLED can
-    # decide whether the backed endpoints are exposed.
-    if os.getenv("FLASK_ENV") == "production":
-        app.config.from_object(ProductionConfig)
-    else:
-        # Development environment:
-        app.debug = True
-        app.config.from_object(DevelopmentConfig)
+    app.debug = settings.debug
+    app.config["SETTINGS"] = settings
+    app.config["STORAGE_ENABLED"] = settings.storage_enabled
+    app.config["PROFILES_PATH"] = settings.profiles_path
 
     # Always available:
     app.register_blueprint(v1_post_bp, url_prefix="/v1/ro_crates")
 
-    # MinIO is optional and disabled by default. Only register
-    # the MinIO ID routes when enabled:
-    if app.config.get("MINIO_ENABLED"):
+    # Object storage is optional and disabled by default. Only register the
+    # ID-based, store-backed routes when storage is enabled.
+    if settings.storage_enabled:
         app.register_blueprint(v1_minio_post_bp, url_prefix="/v1/ro_crates")
         app.register_blueprint(v1_minio_get_bp, url_prefix="/v1/ro_crates")
-        logger.info("MinIO storage enabled: ID-based validation endpoints registered.")
+        logger.info("Storage enabled: ID-based validation endpoints registered.")
     else:
-        logger.info("MinIO storage disabled: only metadata validation is available.")
+        logger.info("Storage disabled: only metadata validation is available.")
 
     if app.debug:
         print("URL Map:")
