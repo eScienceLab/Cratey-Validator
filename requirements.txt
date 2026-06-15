@@ -16,6 +16,8 @@ argon2-cffi==25.1.0
     # via minio
 argon2-cffi-bindings==25.1.0
     # via argon2-cffi
+async-timeout==5.0.1
+    # via redis
 attrs==25.3.0
     # via
     #   cattrs
@@ -24,6 +26,12 @@ billiard==4.2.1
     # via celery
 blinker==1.9.0
     # via flask
+boto3==1.43.29
+    # via -r requirements.in
+botocore==1.43.29
+    # via
+    #   boto3
+    #   s3transfer
 cattrs==25.1.1
     # via requests-cache
 celery==5.6.3
@@ -84,6 +92,10 @@ itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
     # via flask
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
 kombu==5.6.2
     # via celery
 markdown-it-py==3.0.0
@@ -137,7 +149,9 @@ pyparsing==3.2.3
 pyshacl==0.30.1
     # via roc-validator
 python-dateutil==2.9.0.post0
-    # via celery
+    # via
+    #   botocore
+    #   celery
 python-dotenv==1.2.2
     # via -r requirements.in
 rdflib[html]==7.1.4
@@ -162,6 +176,8 @@ rich-click==1.8.9
     # via roc-validator
 roc-validator==0.9.0
     # via -r requirements.in
+s3transfer==0.18.0
+    # via boto3
 six==1.17.0
     # via python-dateutil
 toml==0.10.2
@@ -187,6 +203,7 @@ url-normalize==2.2.1
     # via requests-cache
 urllib3==2.6.3
     # via
+    #   botocore
     #   minio
     #   requests
     #   requests-cache
