@@ -5,9 +5,7 @@ import json
 from app.tasks.validation_tasks import (
     process_validation_task_by_id,
     perform_ro_crate_validation,
-    perform_metadata_validation,
     return_ro_crate_validation,
-    process_validation_task_by_metadata,
     check_ro_crate_exists,
     check_validation_exists
 )
@@ -226,97 +224,6 @@ def test_process_validation_failure(
         mock_remove.assert_not_called()
 
 
-# Test function: process_validation_task_by_metadata
-
-@pytest.mark.parametrize(
-        "crate_json, profile_name, webhook_url, profiles_path, validation_json, validation_value",
-        [
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
-                "test-profile", "https://example.com/webhook",
-                "/app/profiles",
-                '{"status": "valid"}', False
-            ),
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
-                "test-profile", "https://example.com/webhook",
-                None,
-                '{"status": "invalid"}', True
-            )
-        ],
-        ids=["success_no_issues", "success_with_issues"]
-)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.perform_metadata_validation")
-def test_metadata_validation(
-    mock_validate, mock_webhook,
-    crate_json: str, profile_name: str, webhook_url: str, profiles_path: str | None,
-    validation_json: str, validation_value: bool,
-):
-    mock_result = mock.Mock()
-    mock_result.has_issues.return_value = validation_value
-    mock_result.to_json.return_value = validation_json
-    mock_validate.return_value = mock_result
-
-    result = process_validation_task_by_metadata(
-        crate_json, profile_name, webhook_url, profiles_path
-    )
-
-    assert result == validation_json
-    mock_validate.assert_called_once_with(
-        crate_json, profile_name, profiles_path=profiles_path
-    )
-    mock_webhook.assert_called_once_with(webhook_url, validation_json)
-
-
-@pytest.mark.parametrize(
-        "crate_json, profile_name, webhook_url, profiles_path, validation_message",
-        [
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
-                "test-profile", "https://example.com/webhook",
-                "/app/profiles",
-                "Validation error"
-            ),
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context", "@graph": []}',
-                "test-profile", None,
-                None,
-                "Validation error"
-            )
-        ],
-        ids=["validation_fails", "validation_fails_no_webhook"]
-)
-@mock.patch("app.tasks.validation_tasks.send_webhook_notification")
-@mock.patch("app.tasks.validation_tasks.perform_metadata_validation")
-def test_validation_fails_and_sends_error_notification_to_webhook(
-    mock_validate, mock_webhook,
-    crate_json: str, profile_name: str, webhook_url: str, profiles_path: str | None,
-    validation_message: str
-):
-
-    mock_validate.return_value = validation_message
-
-    result = process_validation_task_by_metadata(
-        crate_json, profile_name, webhook_url, profiles_path
-    )
-
-    assert isinstance(result, str)
-    assert validation_message in result
-    mock_validate.assert_called_once_with(
-        crate_json, profile_name, profiles_path=profiles_path
-    )
-
-    if webhook_url is not None:
-        # Error webhook should be sent
-        mock_webhook.assert_called_once()
-        args, kwargs = mock_webhook.call_args
-        assert kwargs is None or "error" in args[1]
-    else:
-        # Make sure webhook not sent
-        mock_webhook.assert_not_called()
-
-
 # Test function: perform_ro_crate_validation
 
 @pytest.mark.parametrize(
@@ -373,68 +280,6 @@ def test_validation_raises_exception_and_returns_string(mock_validation_settings
 def test_validation_settings_error(mock_validation_settings, mock_validate):
     file_path = "crates/test_crate"
     result = perform_ro_crate_validation(file_path, None)
-
-    assert isinstance(result, str)
-    assert "Bad config" in result
-    mock_validate.assert_not_called()
-
-
-# Test function: perform_metadata_validation
-
-@pytest.mark.parametrize(
-        "crate_json, profile_name, skip_checks",
-        [
-            ('{"id":"dummy json"}', "ro_profile", ["check1", "check2"]),
-            ('{"id":"dummy json"}', None, None)
-        ],
-        ids=["success_with_all_args", "success_with_only_crate"]
-)
-@mock.patch("app.tasks.validation_tasks.services.validate")
-@mock.patch("app.tasks.validation_tasks.services.ValidationSettings")
-def test_metadata_validation_success_with_all_args(
-    mock_validation_settings, mock_validate,
-    crate_json: str, profile_name: str, skip_checks: list
-):
-    mock_result = mock.Mock()
-    mock_validate.return_value = mock_result
-
-    result = perform_metadata_validation(crate_json, profile_name, skip_checks)
-
-    # Assert that result was returned
-    assert result == mock_result
-
-    # Validate proper construction of ValidationSettings
-    mock_validation_settings.assert_called_once()
-    args, kwargs = mock_validation_settings.call_args
-    assert kwargs["metadata_dict"] == json.loads(crate_json)
-    if profile_name is not None:
-        assert kwargs["profile_identifier"] == profile_name
-    else:
-        assert "profile_identifier" not in kwargs
-    if skip_checks is not None:
-        assert kwargs["skip_checks"] == skip_checks
-    else:
-        assert "skip_checks" not in kwargs
-
-    mock_validate.assert_called_once_with(mock_validation_settings.return_value)
-
-
-@mock.patch("app.tasks.validation_tasks.services.validate", side_effect=RuntimeError("Validation error"))
-@mock.patch("app.tasks.validation_tasks.services.ValidationSettings")
-def test_metadata_validation_raises_exception_and_returns_string(mock_validation_settings, mock_validate):
-    crate_json = '{"id":"test metadata"}'
-    result = perform_metadata_validation(crate_json, "profile", skip_checks_list=None)
-
-    assert isinstance(result, str)
-    assert "Validation error" in result
-    mock_validate.assert_called_once()
-
-
-@mock.patch("app.tasks.validation_tasks.services.validate")
-@mock.patch("app.tasks.validation_tasks.services.ValidationSettings", side_effect=ValueError("Bad config"))
-def test_metadata_validation_settings_error(mock_validation_settings, mock_validate):
-    crate_json = '{"id":"test metadata"}'
-    result = perform_metadata_validation(crate_json, None)
 
     assert isinstance(result, str)
     assert "Bad config" in result

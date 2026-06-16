@@ -5,9 +5,10 @@ from flask.testing import FlaskClient
 
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
-    queue_ro_crate_metadata_validation_task,
+    run_metadata_validation,
     get_ro_crate_validation_task
 )
+from app.validation.results import ValidationOutcome, ValidationStatus
 
 from app.utils.minio_utils import InvalidAPIUsage
 
@@ -138,71 +139,61 @@ def test_queue_ro_crate_validation_task_failure(
     mock_delay.assert_not_called()
 
 
-# Test function: queue_ro_crate_metadata_validation_task
+# Test function: run_metadata_validation (synchronous, no Celery)
 
-@pytest.mark.parametrize(
-        "crate_json, profile, webhook, status_code, return_value, response_json, delay_side_effect, profiles_path",
-        [
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
-                "default", "http://webhook",
-                202, None, {"message": "Validation in progress"},
-                None, None
-            ),
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
-                "default", None,
-                200, {"status": "ok"}, {"result": {"status": "ok"}},
-                None, None
-            ),
-            (
-                '{"@context": "https://w3id.org/ro/crate/1.1/context"}',
-                "default", "http://webhook",
-                500, None, {"error": "Celery error"},
-                Exception("Celery error"), None
-            ),
-        ],
-        ids=["success_with_webhook", "success_without_webhook", "failure_celery_error"]
-)
-def test_queue_metadata(flask_app, crate_json: dict, profile: str, webhook: str,
-                        status_code: int, return_value: dict, response_json: dict,
-                        delay_side_effect: Exception, profiles_path: str):
-    with patch("app.services.validation_service.process_validation_task_by_metadata.delay",
-               side_effect=delay_side_effect) as mock_delay:
-        mock_result = MagicMock()
-        if return_value is not None:
-            mock_result.get.return_value = return_value
-        if delay_side_effect is None:
-            mock_delay.return_value = mock_result
+@patch("app.services.validation_service.validate_metadata")
+def test_run_metadata_validation_valid_is_200(mock_validate, flask_app):
+    mock_validate.return_value = ValidationOutcome(
+        status=ValidationStatus.VALID, profile="ro-crate", detail={"report": "ok"}
+    )
 
-        response, status = queue_ro_crate_metadata_validation_task(crate_json, profile, webhook, profiles_path)
+    response, status = run_metadata_validation(
+        '{"@graph": []}', "ro-crate", "/app/profiles"
+    )
 
-        mock_delay.assert_called_once_with(crate_json, profile, webhook, profiles_path)
-        assert status == status_code
-        assert response.json == response_json
+    assert status == 200
+    assert response.json["status"] == "valid"
+    mock_validate.assert_called_once_with(
+        {"@graph": []}, profile_name="ro-crate", profiles_path="/app/profiles"
+    )
+
+
+@patch("app.services.validation_service.validate_metadata")
+def test_run_metadata_validation_invalid_is_200(mock_validate, flask_app):
+    mock_validate.return_value = ValidationOutcome(
+        status=ValidationStatus.INVALID, detail={"issues": [1]}
+    )
+
+    response, status = run_metadata_validation('{"@graph": []}')
+
+    assert status == 200
+    assert response.json["status"] == "invalid"
+
+
+@patch("app.services.validation_service.validate_metadata")
+def test_run_metadata_validation_error_outcome_is_422(mock_validate, flask_app):
+    mock_validate.return_value = ValidationOutcome.from_error("validator blew up")
+
+    response, status = run_metadata_validation('{"@graph": []}')
+
+    assert status == 422
+    assert response.json["status"] == "error"
+    assert "validator blew up" in response.json["error"]
 
 
 @pytest.mark.parametrize(
-        "crate_json, status_code, response_error",
-        [
-            (
-                None,
-                422, "Missing required parameter: crate_json"
-            ),
-            (
-                "{",
-                422, "not valid JSON"
-            ),
-            (
-                "{}",
-                422, "Required parameter crate_json is empty"
-            ),
-        ],
-        ids=["missing_crate_json","invalid_json","empty_json"]
+    "crate_json, response_error",
+    [
+        (None, "Missing required parameter: crate_json"),
+        ("", "Missing required parameter: crate_json"),
+        ("{", "not valid JSON"),
+        ("{}", "empty"),
+    ],
+    ids=["missing", "blank", "invalid_json", "empty_json"],
 )
-def test_queue_metadata_json_errors(flask_app, crate_json: str, status_code: int, response_error: str):
-    response, status = queue_ro_crate_metadata_validation_task(crate_json)
-    assert status == status_code
+def test_run_metadata_validation_json_errors(flask_app, crate_json, response_error):
+    response, status = run_metadata_validation(crate_json)
+    assert status == 422
     assert response_error in response.json["error"]
 
 

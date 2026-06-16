@@ -1,13 +1,8 @@
 """Tasks and helper methods for processing RO-Crate validation."""
 
-# Author: Alexander Hambley
-# License: MIT
-# Copyright (c) 2025 eScience Lab, The University of Manchester
-
 import logging
 import os
 import shutil
-import json
 from typing import Optional
 
 from rocrate_validator import services
@@ -110,61 +105,6 @@ def process_validation_task_by_id(
                 shutil.rmtree(file_path)
 
 
-@celery.task
-def process_validation_task_by_metadata(
-    crate_json: str,
-    profile_name: str | None,
-    webhook_url: str | None,
-    profiles_path: Optional[str] = None,
-) -> ValidationResult | str:
-    """
-    Background task to process the RO-Crate validation for a given json metadata string.
-
-    :param crate_json: A string containing the RO-Crate JSON metadata to validate.
-    :param profile_name: The name of the validation profile to use. Defaults to None.
-    :param webhook_url: The webhook URL to send notifications to. Defaults to None.
-    :param profiles_path: The path to the profiles definition directory. Defaults to None.
-    :raises Exception: If an error occurs during the validation process.
-
-    :todo: Replace the Crate ID with a more comprehensive system, and replace profile name with URI.
-    """
-
-    try:
-        logging.info("Processing validation task for provided metadata string")
-
-        # Perform validation:
-        validation_result = perform_metadata_validation(
-            crate_json, profile_name, profiles_path=profiles_path
-        )
-
-        if isinstance(validation_result, str):
-            logging.error(f"Validation failed: {validation_result}")
-            # TODO: Send webhook with failure notification
-            raise Exception(f"Validation failed: {validation_result}")
-
-        if not validation_result.has_issues():
-            logging.info("RO Crate metadata is valid.")
-        else:
-            logging.info("RO Crate metadata is invalid.")
-
-        if webhook_url:
-            send_webhook_notification(webhook_url, validation_result.to_json())
-
-    except Exception as e:
-        logging.error(f"Error processing validation task: {e}")
-
-        # Send failure notification via webhook
-        error_data = {"profile_name": profile_name, "error": str(e)}
-        if webhook_url:
-            send_webhook_notification(webhook_url, error_data)
-
-    finally:
-        if isinstance(validation_result, str):
-            return validation_result
-        else:
-            return validation_result.to_json()
-
-
 def perform_ro_crate_validation(
     file_path: str,
     profile_name: str | None,
@@ -194,42 +134,6 @@ def perform_ro_crate_validation(
         )
         settings = services.ValidationSettings(
             rocrate_uri=full_file_path,
-            **({"profile_identifier": profile_name} if profile_name else {}),
-            **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
-            **({"profiles_path": profiles_path} if profiles_path else {}),
-        )
-
-        return services.validate(settings)
-
-    except Exception as e:
-        logging.error(f"Unexpected error during validation: {e}")
-        return str(e)
-
-
-def perform_metadata_validation(
-    crate_json: str,
-    profile_name: str | None,
-    skip_checks_list: Optional[list] = None,
-    profiles_path: Optional[str] = None,
-) -> ValidationResult | str:
-    """
-    Validates only RO-Crate metadata provided as a json string.
-
-    :param crate_json: The JSON string containing the metadata
-    :param profile_name: The name of the validation profile to use. Defaults to None. If None, the CRS4 validator will
-        attempt to determine the profile.
-    :param profiles_path: The path to the profiles definition directory
-    :param skip_checks_list: A list of checks to skip, if needed
-    :return: The validation result.
-    :raises Exception: If an error occurs during the validation process.
-    """
-
-    try:
-        logging.info(f"Validating ro-crate metadata with profile {profile_name}")
-
-        settings = services.ValidationSettings(
-            **({"metadata_only": True}),
-            **({"metadata_dict": json.loads(crate_json)}),
             **({"profile_identifier": profile_name} if profile_name else {}),
             **({"skip_checks": skip_checks_list} if skip_checks_list else {}),
             **({"profiles_path": profiles_path} if profiles_path else {}),

@@ -226,7 +226,7 @@ def test_validate_metadata_success(
     profiles_path: str,
 ):
     with patch(
-        "app.ro_crates.routes.post_routes.queue_ro_crate_metadata_validation_task"
+        "app.ro_crates.routes.post_routes.run_metadata_validation"
     ) as mock_queue:
         mock_queue.return_value = (response_json, status_code)
 
@@ -415,7 +415,7 @@ def test_minio_get_route_not_registered_when_disabled(client: FlaskClient):
 def test_metadata_route_available_when_minio_disabled(client: FlaskClient):
     payload = {"crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}'}
     with patch(
-        "app.ro_crates.routes.post_routes.queue_ro_crate_metadata_validation_task"
+        "app.ro_crates.routes.post_routes.run_metadata_validation"
     ) as mock_queue:
         mock_queue.return_value = ({"status": "success"}, 200)
 

@@ -1,9 +1,5 @@
 """Defines post API endpoints for validating RO-Crates using their IDs from MinIO."""
 
-# Author: Alexander Hambley
-# License: MIT
-# Copyright (c) 2025 eScience Lab, The University of Manchester
-
 from apiflask import APIBlueprint, Schema
 from apiflask.fields import String, Boolean
 from marshmallow.fields import Nested
@@ -11,7 +7,7 @@ from flask import Response, current_app
 
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
-    queue_ro_crate_metadata_validation_task,
+    run_metadata_validation,
 )
 
 # Always-on blueprint:
@@ -119,6 +115,6 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
 
     profiles_path = current_app.config["PROFILES_PATH"]
 
-    return queue_ro_crate_metadata_validation_task(
+    return run_metadata_validation(
         crate_json, profile_name, profiles_path=profiles_path
     )
