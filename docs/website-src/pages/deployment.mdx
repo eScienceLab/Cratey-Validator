@@ -19,63 +19,59 @@ import Diagram from "./components/c4_diagram.mdx";
 
 ## Service Snapshot
 
-Cratey Validator is a web service that checks whether RO-Crates follow the expected structure and metadata rules. It can validate a full RO-Crate stored in MinIO-compatible object storage, or it can validate only the contents of an `ro-crate-metadata.json` file.
+Cratey Validator is a web service that checks whether RO-Crates follow the 
+expected structure and metadata rules. It can validate a complete RO-Crate 
+stored in MinIO-compatible object storage, or it can validate the contents 
+of an `ro-crate-metadata.json` file directly.
 
-At a high level, a client sends a validation request, the service runs the RO-Crate validation checks, and the result is either returned directly or saved so it can be retrieved later.
+At a high level, a client sends a validation request, the service runs the 
+RO-Crate validation checks, and the result is either returned directly or 
+saved so it can be retrieved later.
 
-The service is exposed through the following three endpoints:
+## What You Can Validate
 
-- `POST /v1/ro_crates/{crate_id}/validation`
-  Validates an RO-Crate that already exists in MinIO. The service queues a background task, downloads the crate, runs the validation checks, and saves the validation result back to MinIO.
+### Stored RO-Crates
 
-- `POST /v1/ro_crates/validate_metadata`
-  Validates RO-Crate metadata directly. This route is useful when the caller only needs to check the crate metadata file and does not need the service to download a full crate from object storage.
+Use this option when the RO-Crate already exists in MinIO-compatible object 
+storage. The service reads the crate from the configured bucket, runs the 
+validation checks, and saves the validation result back to object storage.
 
-- `GET /v1/ro_crates/{crate_id}/validation`
-  Retrieves the saved validation result for an RO-Crate that was previously validated from MinIO.
-
-## Current Architecture
-
-The service is built as a Flask/APIFlask web API backed by Celery workers for longer-running validation jobs.
-RO-Crates are read from MinIO-compatible object storage, Redis is used by Celery to pass work between the API and the worker,
-and validation is performed by the CRS4 `rocrate_validator` library.
-
-
-## Runtime Flow
-
-### Validate RO-Crate From MinIO
-
-1. Client sends a request to `POST /v1/ro_crates/{crate_id}/validation`.
-2. Request includes `minio_config` and optional `root_path` and `profile_name`.
-3. Flask route passes the request to `queue_ro_crate_validation_task`.
-4. Service creates a MinIO client and checks that the target crate exists.
-5. Celery queues `process_validation_task_by_id`.
-6. Worker downloads the RO-Crate into a temporary local path.
-7. Worker runs `rocrate_validator.services.validate`.
-8. Validation JSON is uploaded to MinIO at:
-   - `{crate_id}_validation/validation_status.txt`
-   - or `{root_path}/{crate_id}_validation/validation_status.txt`
-9. Temporary files are removed.
-
-### Retrieve Validation Result
-
-1. Client sends `GET /v1/ro_crates/{crate_id}/validation`.
-2. Request includes `minio_config` and optional `root_path`.
-3. Service checks that both the RO-Crate and validation result exist in MinIO.
-4. Stored validation JSON is returned to the client.
-
-### Validate Metadata Directly
-
-1. Client sends `POST /v1/ro_crates/validate_metadata`.
-2. Request includes `crate_json` and optional `profile_name`.
-3. Service verifies that `crate_json` is present, valid JSON, and non-empty.
-4. Celery runs `process_validation_task_by_metadata`.
-5. The API waits for the Celery result and returns the validation output synchronously.
+This is useful for validating complete crates as part of an upload, review, 
+or publication workflow.
 
 
-## Standing up the service
+### Metadata Files
 
-### Local Development
+Use this option when you only need to check the contents of 
+`ro-crate-metadata.json`. Instead of asking the service to download a full 
+crate, you submit the metadata JSON directly and receive the validation result 
+in the response.
+
+This is useful for quick checks while editing metadata or before a complete 
+crate has been assembled.
+
+
+### Saved Validation Results
+
+After a stored RO-Crate has been validated, the saved validation result can be 
+retrieved later. This lets another application or user interface show the most 
+recent validation status without rerunning the checks.
+
+
+## Before You Start
+
+For stored RO-Crate validation, you need:
+
+- A MinIO-compatible object store.
+- A bucket containing the RO-Crate.
+- Access credentials for that bucket.
+- The crate identifier used by the object store.
+
+For metadata-only validation, you only need the contents of 
+`ro-crate-metadata.json`.
+
+
+## Running The Service
 
 The service can be started with Docker Compose:
 
@@ -96,11 +92,9 @@ Expected local services:
 - MinIO console: `http://localhost:9001`
 - Redis: `localhost:6379`
 
-MinIO needs a bucket for RO-Crates, normally `ro-crates`. Bucket versioning should be enabled so uploaded crate objects can be tracked reliably.
+MinIO needs a bucket for RO-Crates, normally `ro-crates`. Bucket versioning 
+should be enabled so uploaded crate objects can be tracked reliably.
 
-
-### Production Deployment
-(I guess this would be the same??)
 
 ## Configuration
 
@@ -110,10 +104,20 @@ The main environment variables are:
 - `FLASK_ENV`: selects development or production config.
 - `CELERY_BROKER_URL`: Redis broker URL.
 - `CELERY_RESULT_BACKEND`: Redis result backend URL.
-- `PROFILES_PATH`: optional path to custom RO-Crate validator profile definitions.
+- `PROFILES_PATH`: optional path to custom RO-Crate validator profile 
+definitions.
 - `MINIO_ENDPOINT`: default MinIO endpoint used by Docker examples.
 - `MINIO_ROOT_USER`: MinIO root username for local development.
-- `MINIO_ROOT_PASSWORD`: MinIO root password for local development.
+- `MINIO_ROOT_PASSWORD`: MinIO root password.
 - `MINIO_BUCKET_NAME`: default bucket name used by local setup.
 
 API calls also pass MinIO access details in `minio_config`, so the service can validate crates in a specified object store and bucket.
+
+## More Information
+
+- For endpoint paths, request bodies, response codes, validation profiles, and 
+result storage paths, see the [REST API documentation](./rest_api).
+- For implementation details, service components, runtime flow, and test 
+coverage, see the [Architecture documentation](./architecture).
+- For deployment context and the architecture diagram, see 
+[Deployment](./deployment).

@@ -11,5 +11,6 @@ export default {
   },
   deployment: "Deployment",
   rest_api: "REST API",
+  architecture: "Architecture",
   development: "Development"
 }
