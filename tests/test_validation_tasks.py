@@ -11,6 +11,7 @@ from app.storage.memory import InMemoryStorage
 from app.tasks import validation_tasks
 from app.tasks.validation_tasks import run_validation_job
 from app.utils.config import Settings
+from app.utils.webhook_utils import WebhookDeliveryError
 from app.validation.results import ValidationOutcome, ValidationStatus
 
 RUNNER = "app.tasks.validation_tasks.validate_crate_path"
@@ -105,6 +106,23 @@ def test_transient_storage_error_propagates_for_retry():
     with mock.patch(RUNNER), mock.patch(WEBHOOK):
         with pytest.raises(StorageError):
             run_validation_job(storage, "foo", _settings(), created_at="t")
+
+
+def test_webhook_failure_surfaces_but_result_is_already_persisted(storage):
+    """A terminal webhook failure propagates, yet the outcome was persisted first."""
+    storage.put_bytes("crates/foo.zip", b"PK")
+
+    with mock.patch(RUNNER) as run, mock.patch(WEBHOOK) as hook:
+        run.return_value = ValidationOutcome(status=ValidationStatus.VALID, created_at="t")
+        hook.side_effect = WebhookDeliveryError("gave up")
+
+        with pytest.raises(WebhookDeliveryError):
+            run_validation_job(
+                storage, "foo", _settings(), webhook_url="https://hook", created_at="t"
+            )
+
+    # Persisted before the webhook was attempted, so GET still works.
+    assert _stored_outcome(storage, "foo")["status"] == "valid"
 
 
 def test_created_at_is_persisted(storage):
