@@ -7,15 +7,22 @@ from apiflask import APIFlask
 from app.crates.ids import InvalidCrateId
 from app.crates.resolver import CrateNotFound, AmbiguousCrate
 from app.ro_crates.routes import v1_post_bp, v1_minio_post_bp, v1_minio_get_bp
+from app.services.logging_service import (
+    new_request_id,
+    set_request_id,
+    get_request_id,
+)
 from app.storage.errors import StorageError
 from app.utils.config import (
     Settings,
     InvalidAPIUsage,
     make_celery,
 )
-from flask import jsonify
+from flask import jsonify, request
 
 logger = logging.getLogger(__name__)
+
+REQUEST_ID_HEADER = "X-Request-ID"
 
 
 def create_app(settings: Settings | None = None) -> APIFlask:
@@ -52,10 +59,14 @@ def create_app(settings: Settings | None = None) -> APIFlask:
     else:
         logger.info("Storage disabled: only metadata validation is available.")
 
-    if app.debug:
-        print("URL Map:")
-        for rule in app.url_map.iter_rules():
-            print(rule)
+    @app.before_request
+    def assign_request_id():
+        set_request_id(request.headers.get(REQUEST_ID_HEADER) or new_request_id())
+
+    @app.after_request
+    def attach_request_id(response):
+        response.headers[REQUEST_ID_HEADER] = get_request_id()
+        return response
 
     @app.errorhandler(InvalidAPIUsage)
     def invalid_api_usage(e):

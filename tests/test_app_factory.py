@@ -59,3 +59,25 @@ def test_storage_routes_registered_when_enabled():
 def test_profiles_path_exposed_to_app_config():
     app = create_app(settings=Settings.from_env({"PROFILES_PATH": "/custom/profiles"}))
     assert app.config["PROFILES_PATH"] == "/custom/profiles"
+
+
+def test_response_includes_generated_request_id_header():
+    app = create_app(settings=Settings.from_env({}))
+    client = app.test_client()
+
+    response = client.post("/v1/ro_crates/validate_metadata", json={"crate_json": "{}"})
+
+    assert response.headers.get("X-Request-ID")
+
+
+def test_incoming_request_id_is_echoed():
+    app = create_app(settings=Settings.from_env({}))
+    client = app.test_client()
+
+    response = client.post(
+        "/v1/ro_crates/validate_metadata",
+        json={"crate_json": "{}"},
+        headers={"X-Request-ID": "caller-supplied-id"},
+    )
+
+    assert response.headers["X-Request-ID"] == "caller-supplied-id"
