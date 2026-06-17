@@ -6,6 +6,7 @@ from apiflask import APIFlask
 
 from app.crates.ids import InvalidCrateId
 from app.crates.resolver import CrateNotFound, AmbiguousCrate
+from app.health import health_bp
 from app.ro_crates.routes import v1_post_bp, v1_minio_post_bp, v1_minio_get_bp
 from app.services.logging_service import (
     new_request_id,
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None) -> APIFlask:
     app.config["PROFILES_PATH"] = settings.profiles_path
 
     # Always available:
+    app.register_blueprint(health_bp)
     app.register_blueprint(v1_post_bp, url_prefix="/v1/ro_crates")
 
     # Object storage is optional and disabled by default. Only register the

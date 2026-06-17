@@ -78,6 +78,16 @@ def test_non_missing_client_error_becomes_storage_error(s3_backend):
     assert not isinstance(exc_info.value, ObjectNotFound)
 
 
+def test_health_check_passes_for_existing_bucket(s3_backend):
+    s3_backend.health_check()  # must not raise
+
+
+def test_health_check_fails_for_missing_bucket(s3_backend):
+    broken = S3Backend(s3_backend._client, "nonexistent-bucket")
+    with pytest.raises(StorageError):
+        broken.health_check()
+
+
 def test_s3_backend_satisfies_protocol(s3_backend):
     assert isinstance(s3_backend, StorageBackend)
 

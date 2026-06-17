@@ -92,6 +92,15 @@ class S3Backend:
             with open(local_path, "wb") as handle:
                 handle.write(self.get_bytes(key))
 
+    def health_check(self) -> None:
+        """Verify the bucket is reachable; raise ``StorageError`` if not."""
+        try:
+            self._client.head_bucket(Bucket=self.bucket)
+        except (ClientError, BotoCoreError) as error:
+            raise StorageError(
+                f"Bucket {self.bucket} not reachable: {error}"
+            ) from error
+
     @staticmethod
     def _translate(error: ClientError, key: str) -> StorageError:
         """Map a botocore ClientError to the storage error vocabulary.
