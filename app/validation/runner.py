@@ -6,7 +6,6 @@ outcome rather than a string, so callers never have to type-check the result.
 """
 
 import logging
-
 from typing import Optional
 
 from rocrate_validator import services
@@ -68,13 +67,9 @@ def _run(
     try:
         settings = services.ValidationSettings(**options)
         result = services.validate(settings)
-    except (
-        Exception
-    ) as error:  # noqa: BLE001 - adapt any validator failure to an outcome
+    except Exception as error:  # noqa: BLE001 - adapt any validator failure to an outcome
         logger.error("Validation failed: %s", error)
-        return ValidationOutcome.from_error(
-            str(error), profile=profile_name, created_at=created_at
-        )
+        return ValidationOutcome.from_error(str(error), profile=profile_name, created_at=created_at)
 
     return ValidationOutcome.from_validator_result(
         result, profile=profile_name, created_at=created_at

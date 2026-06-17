@@ -7,9 +7,9 @@ from app.services.logging_service import (
     JsonFormatter,
     RedactionFilter,
     RequestIdFilter,
-    set_request_id,
     get_request_id,
     new_request_id,
+    set_request_id,
 )
 
 

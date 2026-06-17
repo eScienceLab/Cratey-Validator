@@ -1,6 +1,8 @@
-from flask.testing import FlaskClient
-import pytest
 from unittest.mock import patch
+
+import pytest
+from flask.testing import FlaskClient
+
 from app import create_app
 from app.utils.config import Settings
 
@@ -38,8 +40,10 @@ def storage_client():
 @pytest.mark.parametrize(
     "payload, expected_args",
     [
-        ({"profile_name": "ro-crate", "webhook_url": "https://hook"},
-         ("crate-123", "ro-crate", "https://hook")),
+        (
+            {"profile_name": "ro-crate", "webhook_url": "https://hook"},
+            ("crate-123", "ro-crate", "https://hook"),
+        ),
         ({"profile_name": "ro-crate"}, ("crate-123", "ro-crate", None)),
         ({"webhook_url": "https://hook"}, ("crate-123", None, "https://hook")),
         ({}, ("crate-123", None, None)),
@@ -47,9 +51,7 @@ def storage_client():
     ids=["all_fields", "no_webhook", "no_profile", "empty_body"],
 )
 def test_validate_by_id_queues_and_returns_202(storage_client, payload, expected_args):
-    with patch(
-        "app.ro_crates.routes.post_routes.queue_ro_crate_validation_task"
-    ) as mock_queue:
+    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
         mock_queue.return_value = ({"message": "Validation in progress"}, 202)
 
         response = storage_client.post("/v1/ro_crates/crate-123/validation", json=payload)
@@ -61,9 +63,7 @@ def test_validate_by_id_queues_and_returns_202(storage_client, payload, expected
 
 def test_validate_by_id_no_longer_accepts_credentials(storage_client):
     """The request body carries no storage credentials; only optional fields."""
-    with patch(
-        "app.ro_crates.routes.post_routes.queue_ro_crate_validation_task"
-    ) as mock_queue:
+    with patch("app.ro_crates.routes.post_routes.queue_ro_crate_validation_task") as mock_queue:
         mock_queue.return_value = ({"message": "Validation in progress"}, 202)
 
         response = storage_client.post(
@@ -103,18 +103,14 @@ def test_validate_by_id_no_longer_accepts_credentials(storage_client):
 def test_validate_metadata_success(
     client: FlaskClient, payload, status_code, response_json, profiles_path
 ):
-    with patch(
-        "app.ro_crates.routes.post_routes.run_metadata_validation"
-    ) as mock_run:
+    with patch("app.ro_crates.routes.post_routes.run_metadata_validation") as mock_run:
         mock_run.return_value = (response_json, status_code)
 
         response = client.post("/v1/ro_crates/validate_metadata", json=payload)
 
         crate_json = payload.get("crate_json")
         profile_name = payload.get("profile_name")
-        mock_run.assert_called_once_with(
-            crate_json, profile_name, profiles_path=profiles_path
-        )
+        mock_run.assert_called_once_with(crate_json, profile_name, profiles_path=profiles_path)
         assert response.status_code == status_code
         assert response.json == response_json
 
@@ -129,9 +125,7 @@ def test_validate_metadata_success(
     ],
     ids=["missing_crate", "blank_crate", "malformed_crate", "empty_crate"],
 )
-def test_validate_metadata_failure(
-    client: FlaskClient, payload, status_code, response_text
-):
+def test_validate_metadata_failure(client: FlaskClient, payload, status_code, response_text):
     response = client.post("/v1/ro_crates/validate_metadata", json=payload)
     assert response.status_code == status_code
     assert response_text in response.get_data(as_text=True)
@@ -141,9 +135,7 @@ def test_validate_metadata_failure(
 
 
 def test_get_validation_by_id_returns_result(storage_client):
-    with patch(
-        "app.ro_crates.routes.get_routes.get_ro_crate_validation_task"
-    ) as mock_get:
+    with patch("app.ro_crates.routes.get_routes.get_ro_crate_validation_task") as mock_get:
         mock_get.return_value = ({"status": "valid"}, 200)
 
         response = storage_client.get("/v1/ro_crates/crate-123/validation")
@@ -168,9 +160,7 @@ def test_get_route_not_registered_when_storage_disabled(client: FlaskClient):
 
 def test_metadata_route_available_when_storage_disabled(client: FlaskClient):
     payload = {"crate_json": '{"@context": "https://w3id.org/ro/crate/1.1/context"}'}
-    with patch(
-        "app.ro_crates.routes.post_routes.run_metadata_validation"
-    ) as mock_run:
+    with patch("app.ro_crates.routes.post_routes.run_metadata_validation") as mock_run:
         mock_run.return_value = ({"status": "valid"}, 200)
 
         response = client.post("/v1/ro_crates/validate_metadata", json=payload)

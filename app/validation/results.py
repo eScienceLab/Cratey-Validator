@@ -1,7 +1,6 @@
 """Defines an explicit result type for validation."""
 
 import json
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -54,9 +53,7 @@ class ValidationOutcome:
         cls, result, profile: Optional[str] = None, created_at: Optional[str] = None
     ) -> "ValidationOutcome":
         """Build an outcome from a rocrate_validator ``ValidationResult``."""
-        status = (
-            ValidationStatus.INVALID if result.has_issues() else ValidationStatus.VALID
-        )
+        status = ValidationStatus.INVALID if result.has_issues() else ValidationStatus.VALID
         return cls(
             status=status,
             profile=profile,

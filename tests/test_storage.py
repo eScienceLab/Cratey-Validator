@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.storage.base import StorageBackend, ObjectStat
+from app.storage.base import ObjectStat, StorageBackend
 from app.storage.errors import ObjectNotFound
 from app.storage.memory import InMemoryStorage
 

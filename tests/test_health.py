@@ -44,8 +44,10 @@ def test_readyz_ready_when_storage_disabled(disabled_client):
 
 
 def test_readyz_ok_when_all_checks_pass(storage_client):
-    with mock.patch("app.health.check_storage", return_value=(True, "ok")), \
-         mock.patch("app.health.check_broker", return_value=(True, "ok")):
+    with (
+        mock.patch("app.health.check_storage", return_value=(True, "ok")),
+        mock.patch("app.health.check_broker", return_value=(True, "ok")),
+    ):
         response = storage_client.get("/readyz")
 
     assert response.status_code == 200
@@ -53,8 +55,10 @@ def test_readyz_ok_when_all_checks_pass(storage_client):
 
 
 def test_readyz_503_when_storage_unreachable(storage_client):
-    with mock.patch("app.health.check_storage", return_value=(False, "bucket down")), \
-         mock.patch("app.health.check_broker", return_value=(True, "ok")):
+    with (
+        mock.patch("app.health.check_storage", return_value=(False, "bucket down")),
+        mock.patch("app.health.check_broker", return_value=(True, "ok")),
+    ):
         response = storage_client.get("/readyz")
 
     assert response.status_code == 503
@@ -63,8 +67,10 @@ def test_readyz_503_when_storage_unreachable(storage_client):
 
 
 def test_readyz_503_when_broker_unreachable(storage_client):
-    with mock.patch("app.health.check_storage", return_value=(True, "ok")), \
-         mock.patch("app.health.check_broker", return_value=(False, "broker down")):
+    with (
+        mock.patch("app.health.check_storage", return_value=(True, "ok")),
+        mock.patch("app.health.check_broker", return_value=(False, "broker down")),
+    ):
         response = storage_client.get("/readyz")
 
     assert response.status_code == 503

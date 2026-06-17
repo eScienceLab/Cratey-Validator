@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from app.utils import webhook_utils
-from app.utils.webhook_utils import send_webhook_notification, WebhookDeliveryError
+from app.utils.webhook_utils import WebhookDeliveryError, send_webhook_notification
 
 
 def _ok_response():
@@ -28,9 +28,7 @@ def test_retries_then_succeeds():
     flaky = [requests.ConnectionError("boom"), requests.ConnectionError("boom"), _ok_response()]
     sleeps = []
     with mock.patch.object(webhook_utils.requests, "post", side_effect=flaky) as post:
-        send_webhook_notification(
-            "https://hook", {"x": 1}, max_attempts=3, sleep=sleeps.append
-        )
+        send_webhook_notification("https://hook", {"x": 1}, max_attempts=3, sleep=sleeps.append)
     assert post.call_count == 3
     assert len(sleeps) == 2  # slept between the three attempts
 

@@ -29,9 +29,7 @@ class StorageBackend(Protocol):
         """Return the object's bytes or raise ``ObjectNotFound``."""
         ...
 
-    def put_bytes(
-        self, key: str, data: bytes, content_type: Optional[str] = None
-    ) -> None:
+    def put_bytes(self, key: str, data: bytes, content_type: Optional[str] = None) -> None:
         """Store ``data`` at ``key``, overwriting any existing object."""
         ...
 

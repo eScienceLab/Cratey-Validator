@@ -3,7 +3,6 @@
 import json
 import logging
 import uuid
-
 from contextvars import ContextVar
 from typing import Iterable, Optional
 

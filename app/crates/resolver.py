@@ -10,7 +10,7 @@ ID is harmless). Ambiguity and absence are reported explicitly.
 from dataclasses import dataclass
 
 from app.crates.ids import validate_crate_id
-from app.crates.layout import crate_zip_key, crate_dir_prefix, crate_metadata_key
+from app.crates.layout import crate_dir_prefix, crate_metadata_key, crate_zip_key
 from app.storage.base import StorageBackend
 from app.storage.errors import ObjectNotFound
 

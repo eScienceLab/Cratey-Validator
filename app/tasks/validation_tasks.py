@@ -14,7 +14,6 @@ import logging
 import os
 import shutil
 import tempfile
-
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -22,10 +21,10 @@ from app.celery_worker import celery
 from app.crates.ids import InvalidCrateId
 from app.crates.layout import result_key
 from app.crates.resolver import (
-    resolve_crate,
-    ResolvedCrate,
-    CrateNotFound,
     AmbiguousCrate,
+    CrateNotFound,
+    ResolvedCrate,
+    resolve_crate,
 )
 from app.storage.base import StorageBackend
 from app.storage.errors import StorageError
@@ -42,9 +41,7 @@ def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _download_crate(
-    storage: StorageBackend, resolved: ResolvedCrate, temp_dir: str
-) -> str:
+def _download_crate(storage: StorageBackend, resolved: ResolvedCrate, temp_dir: str) -> str:
     """Download a resolved crate into ``temp_dir`` and return its local path."""
     if resolved.is_zip:
         local_path = os.path.join(temp_dir, f"{resolved.crate_id}.zip")

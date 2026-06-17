@@ -1,7 +1,6 @@
 """An in-memory storage backend for tests and local use."""
 
 import os
-
 from typing import Dict, List, Optional
 
 from app.storage.base import ObjectStat
@@ -28,9 +27,7 @@ class InMemoryStorage:
         except KeyError:
             raise ObjectNotFound(key)
 
-    def put_bytes(
-        self, key: str, data: bytes, content_type: Optional[str] = None
-    ) -> None:
+    def put_bytes(self, key: str, data: bytes, content_type: Optional[str] = None) -> None:
         self._objects[key] = data
 
     def list(self, prefix: str) -> List[str]:

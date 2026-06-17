@@ -3,9 +3,9 @@
 import pytest
 
 from app.crates.layout import (
-    crate_zip_key,
     crate_dir_prefix,
     crate_metadata_key,
+    crate_zip_key,
     result_key,
 )
 

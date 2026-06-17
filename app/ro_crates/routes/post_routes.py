@@ -79,6 +79,4 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
 
     profiles_path = current_app.config["PROFILES_PATH"]
 
-    return run_metadata_validation(
-        crate_json, profile_name, profiles_path=profiles_path
-    )
+    return run_metadata_validation(crate_json, profile_name, profiles_path=profiles_path)

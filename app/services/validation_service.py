@@ -3,7 +3,7 @@
 import json
 import logging
 
-from flask import jsonify, Response, current_app
+from flask import Response, current_app, jsonify
 
 from app.crates.ids import validate_crate_id
 from app.crates.layout import result_key
@@ -76,9 +76,7 @@ def run_metadata_validation(
     if not metadata:
         return jsonify({"error": "Required parameter crate_json is empty"}), 422
 
-    outcome = validate_metadata(
-        metadata, profile_name=profile_name, profiles_path=profiles_path
-    )
+    outcome = validate_metadata(metadata, profile_name=profile_name, profiles_path=profiles_path)
     status_code = 422 if outcome.status is ValidationStatus.ERROR else 200
     return jsonify(outcome.to_dict()), status_code
 

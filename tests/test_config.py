@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.utils.config import Settings, ConfigError
+from app.utils.config import ConfigError, Settings
 
 
 def test_defaults_when_storage_disabled():

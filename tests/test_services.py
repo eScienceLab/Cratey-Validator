@@ -1,17 +1,18 @@
 """Tests for the validation service layer."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 from flask import Flask
 
 from app import create_app
 from app.crates.ids import InvalidCrateId
 from app.crates.layout import result_key
-from app.crates.resolver import CrateNotFound, AmbiguousCrate
+from app.crates.resolver import AmbiguousCrate, CrateNotFound
 from app.services.validation_service import (
+    get_ro_crate_validation_task,
     queue_ro_crate_validation_task,
     run_metadata_validation,
-    get_ro_crate_validation_task,
 )
 from app.storage.memory import InMemoryStorage
 from app.utils.config import InvalidAPIUsage, Settings
@@ -48,6 +49,7 @@ def app_ctx():
 
 # --- queue_ro_crate_validation_task --------------------------------------
 
+
 @patch("app.services.validation_service.process_validation_task_by_id.delay")
 @patch("app.services.validation_service.resolve_crate")
 @patch("app.services.validation_service._build_storage")
@@ -63,7 +65,9 @@ def test_queue_resolves_then_delays(mock_storage, mock_resolve, mock_delay, app_
 @patch("app.services.validation_service.process_validation_task_by_id.delay")
 @patch("app.services.validation_service.resolve_crate", side_effect=CrateNotFound("nope"))
 @patch("app.services.validation_service._build_storage")
-def test_queue_not_found_propagates_without_queueing(mock_storage, mock_resolve, mock_delay, app_ctx):
+def test_queue_not_found_propagates_without_queueing(
+    mock_storage, mock_resolve, mock_delay, app_ctx
+):
     with pytest.raises(CrateNotFound):
         queue_ro_crate_validation_task("missing")
     mock_delay.assert_not_called()
@@ -72,13 +76,16 @@ def test_queue_not_found_propagates_without_queueing(mock_storage, mock_resolve,
 @patch("app.services.validation_service.process_validation_task_by_id.delay")
 @patch("app.services.validation_service.resolve_crate", side_effect=AmbiguousCrate("both"))
 @patch("app.services.validation_service._build_storage")
-def test_queue_ambiguous_propagates_without_queueing(mock_storage, mock_resolve, mock_delay, app_ctx):
+def test_queue_ambiguous_propagates_without_queueing(
+    mock_storage, mock_resolve, mock_delay, app_ctx
+):
     with pytest.raises(AmbiguousCrate):
         queue_ro_crate_validation_task("dup")
     mock_delay.assert_not_called()
 
 
 # --- run_metadata_validation (synchronous) -------------------------------
+
 
 @patch("app.services.validation_service.validate_metadata")
 def test_run_metadata_validation_valid_is_200(mock_validate, flask_app):
@@ -131,6 +138,7 @@ def test_run_metadata_validation_json_errors(flask_app, crate_json, response_err
 
 
 # --- get_ro_crate_validation_task ----------------------------------------
+
 
 @patch("app.services.validation_service._build_storage")
 def test_get_returns_stored_result(mock_storage, app_ctx):

@@ -1,12 +1,13 @@
-import pytest
-import subprocess
-import time
-import requests
 import json
 import os
-import docker
-from minio import Minio
+import subprocess
+import time
 import uuid
+
+import docker
+import pytest
+import requests
+from minio import Minio
 
 
 @pytest.fixture(scope="session")
@@ -234,10 +235,7 @@ def test_rocrate_not_validated_yet():
 
     # Assertions
     assert response.status_code == 400
-    assert (
-        response_result["message"]
-        == f"No validation result yet for RO-Crate: {ro_crate}"
-    )
+    assert response_result["message"] == f"No validation result yet for RO-Crate: {ro_crate}"
 
 
 def test_zipped_rocrate_validation():

@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from app.validation import runner
 from app.validation.results import ValidationStatus
 

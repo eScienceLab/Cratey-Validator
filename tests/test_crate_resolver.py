@@ -4,10 +4,10 @@ import pytest
 
 from app.crates.ids import InvalidCrateId
 from app.crates.resolver import (
-    resolve_crate,
-    ResolvedCrate,
-    CrateNotFound,
     AmbiguousCrate,
+    CrateNotFound,
+    ResolvedCrate,
+    resolve_crate,
 )
 from app.storage.memory import InMemoryStorage
 

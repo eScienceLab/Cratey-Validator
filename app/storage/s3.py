@@ -6,7 +6,6 @@ error vocabulary so callers never see botocore exceptions.
 """
 
 import os
-
 from typing import List, Optional
 
 import boto3
@@ -63,9 +62,7 @@ class S3Backend:
         except BotoCoreError as error:
             raise StorageError(f"Storage error for {key}: {error}") from error
 
-    def put_bytes(
-        self, key: str, data: bytes, content_type: Optional[str] = None
-    ) -> None:
+    def put_bytes(self, key: str, data: bytes, content_type: Optional[str] = None) -> None:
         kwargs = {"Bucket": self.bucket, "Key": key, "Body": data}
         if content_type:
             kwargs["ContentType"] = content_type
@@ -97,9 +94,7 @@ class S3Backend:
         try:
             self._client.head_bucket(Bucket=self.bucket)
         except (ClientError, BotoCoreError) as error:
-            raise StorageError(
-                f"Bucket {self.bucket} not reachable: {error}"
-            ) from error
+            raise StorageError(f"Bucket {self.bucket} not reachable: {error}") from error
 
     @staticmethod
     def _translate(error: ClientError, key: str) -> StorageError:

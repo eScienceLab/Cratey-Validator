@@ -3,7 +3,7 @@
 import pytest
 
 from app import create_app
-from app.utils.config import Settings, ConfigError
+from app.utils.config import ConfigError, Settings
 
 
 def _storage_env() -> dict:

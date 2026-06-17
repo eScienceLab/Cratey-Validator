@@ -8,7 +8,6 @@ import pytest
 from app.crates.layout import result_key
 from app.storage.errors import StorageError
 from app.storage.memory import InMemoryStorage
-from app.tasks import validation_tasks
 from app.tasks.validation_tasks import run_validation_job
 from app.utils.config import Settings
 from app.utils.webhook_utils import WebhookDeliveryError
@@ -85,9 +84,7 @@ def test_webhook_is_sent_with_outcome_when_url_given(storage):
 
     with mock.patch(RUNNER) as run, mock.patch(WEBHOOK) as hook:
         run.return_value = ValidationOutcome(status=ValidationStatus.VALID, created_at="t")
-        run_validation_job(
-            storage, "foo", _settings(), webhook_url="https://hook", created_at="t"
-        )
+        run_validation_job(storage, "foo", _settings(), webhook_url="https://hook", created_at="t")
 
     hook.assert_called_once()
     url, payload = hook.call_args.args
@@ -128,7 +125,9 @@ def test_webhook_failure_surfaces_but_result_is_already_persisted(storage):
 def test_created_at_is_persisted(storage):
     storage.put_bytes("crates/foo.zip", b"PK")
     with mock.patch(RUNNER) as run, mock.patch(WEBHOOK):
-        run.return_value = ValidationOutcome(status=ValidationStatus.VALID, created_at="2026-06-16T00:00:00Z")
+        run.return_value = ValidationOutcome(
+            status=ValidationStatus.VALID, created_at="2026-06-16T00:00:00Z"
+        )
         run_validation_job(storage, "foo", _settings(), created_at="2026-06-16T00:00:00Z")
 
     assert _stored_outcome(storage, "foo")["created_at"] == "2026-06-16T00:00:00Z"

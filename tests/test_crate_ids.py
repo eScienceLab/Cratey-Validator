@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.crates.ids import validate_crate_id, is_valid_crate_id, InvalidCrateId
+from app.crates.ids import InvalidCrateId, is_valid_crate_id, validate_crate_id
 
 
 @pytest.mark.parametrize(
@@ -12,8 +12,8 @@ from app.crates.ids import validate_crate_id, is_valid_crate_id, InvalidCrateId
         "crate-123",
         "my_crate.v2",
         "ABC.def-123_456",
-        "release.zip",          # ".zip" in the ID is harmless now: IDs are opaque
-        "x" * 128,              # max length
+        "release.zip",  # ".zip" in the ID is harmless now: IDs are opaque
+        "x" * 128,  # max length
     ],
 )
 def test_valid_ids_are_accepted(crate_id):
@@ -24,16 +24,16 @@ def test_valid_ids_are_accepted(crate_id):
 @pytest.mark.parametrize(
     "crate_id",
     [
-        "",                     # empty
-        ".hidden",              # leading dot
-        "-leading-dash",        # must start alphanumeric
-        "a/b",                  # path separator
-        "../etc/passwd",        # traversal
-        "a..b",                 # parent-dir sequence
-        "with space",           # whitespace
-        "tab\tchar",            # control char
-        "x" * 129,              # too long
-        "unicodé",              # non-ASCII
+        "",  # empty
+        ".hidden",  # leading dot
+        "-leading-dash",  # must start alphanumeric
+        "a/b",  # path separator
+        "../etc/passwd",  # traversal
+        "a..b",  # parent-dir sequence
+        "with space",  # whitespace
+        "tab\tchar",  # control char
+        "x" * 129,  # too long
+        "unicodé",  # non-ASCII
     ],
 )
 def test_invalid_ids_are_rejected(crate_id):
