@@ -12,10 +12,6 @@ apiflask==3.1.0
     # via -r requirements.in
 apispec==6.8.2
     # via apiflask
-argon2-cffi==25.1.0
-    # via minio
-argon2-cffi-bindings==25.1.0
-    # via argon2-cffi
 async-timeout==5.0.1
     # via redis
 attrs==25.3.0
@@ -37,11 +33,7 @@ cattrs==25.1.1
 celery==5.6.3
     # via -r requirements.in
 certifi==2025.8.3
-    # via
-    #   minio
-    #   requests
-cffi==1.17.1
-    # via argon2-cffi-bindings
+    # via requests
 charset-normalizer==3.4.2
     # via requests
 click==8.2.1
@@ -112,8 +104,6 @@ marshmallow==4.1.2
     #   webargs
 mdurl==0.1.2
     # via markdown-it-py
-minio==7.2.20
-    # via -r requirements.in
 owlrl==7.1.4
     # via pyshacl
 packaging==25.0
@@ -132,10 +122,6 @@ prompt-toolkit==3.0.51
     # via
     #   click-repl
     #   inquirerpy
-pycparser==2.22
-    # via cffi
-pycryptodome==3.23.0
-    # via minio
 pydantic[email]==2.12.4
     # via apiflask
 pydantic-core==2.41.5
@@ -186,7 +172,6 @@ typing-extensions==4.14.1
     # via
     #   cattrs
     #   enum-tools
-    #   minio
     #   pydantic
     #   pydantic-core
     #   rich-click
@@ -204,7 +189,6 @@ url-normalize==2.2.1
 urllib3==2.6.3
     # via
     #   botocore
-    #   minio
     #   requests
     #   requests-cache
 vine==5.1.0

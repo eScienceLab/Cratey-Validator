@@ -4,7 +4,10 @@ import logging
 
 from apiflask import APIFlask
 
+from app.crates.ids import InvalidCrateId
+from app.crates.resolver import CrateNotFound, AmbiguousCrate
 from app.ro_crates.routes import v1_post_bp, v1_minio_post_bp, v1_minio_get_bp
+from app.storage.errors import StorageError
 from app.utils.config import (
     Settings,
     InvalidAPIUsage,
@@ -57,6 +60,23 @@ def create_app(settings: Settings | None = None) -> APIFlask:
     @app.errorhandler(InvalidAPIUsage)
     def invalid_api_usage(e):
         return jsonify(e.to_dict()), e.status_code
+
+    @app.errorhandler(InvalidCrateId)
+    def invalid_crate_id(e):
+        return jsonify({"error": str(e)}), 400
+
+    @app.errorhandler(CrateNotFound)
+    def crate_not_found(e):
+        return jsonify({"error": str(e)}), 404
+
+    @app.errorhandler(AmbiguousCrate)
+    def ambiguous_crate(e):
+        return jsonify({"error": str(e)}), 409
+
+    @app.errorhandler(StorageError)
+    def storage_error(e):
+        logger.error("Storage error: %s", e)
+        return jsonify({"error": "Storage backend unavailable"}), 503
 
     # Integrate Celery
     make_celery(app)

@@ -46,6 +46,8 @@ class Settings:
     s3_region: Optional[str]
     s3_bucket: Optional[str]
     s3_use_ssl: bool
+    s3_crate_prefix: str
+    s3_results_prefix: str
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "Settings":
@@ -88,6 +90,9 @@ class Settings:
             s3_region=_clean(env.get("S3_REGION")),
             s3_bucket=_clean(env.get("S3_BUCKET")),
             s3_use_ssl=_parse_bool(env.get("S3_USE_SSL")),
+            s3_crate_prefix=_clean(env.get("S3_CRATE_PREFIX")) or "crates",
+            s3_results_prefix=_clean(env.get("S3_RESULTS_PREFIX"))
+            or "validation-results",
         )
 
 

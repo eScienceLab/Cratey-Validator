@@ -1,145 +1,84 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from flask import Flask
-from flask.testing import FlaskClient
+"""Tests for the validation service layer."""
 
+import pytest
+from unittest.mock import patch
+from flask import Flask
+
+from app import create_app
+from app.crates.ids import InvalidCrateId
+from app.crates.layout import result_key
+from app.crates.resolver import CrateNotFound, AmbiguousCrate
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
     run_metadata_validation,
-    get_ro_crate_validation_task
+    get_ro_crate_validation_task,
 )
+from app.storage.memory import InMemoryStorage
+from app.utils.config import InvalidAPIUsage, Settings
 from app.validation.results import ValidationOutcome, ValidationStatus
 
-from app.utils.minio_utils import InvalidAPIUsage
+
+def _storage_env() -> dict:
+    return {
+        "STORAGE_ENABLED": "true",
+        "S3_ENDPOINT": "minio:9000",
+        "S3_ACCESS_KEY": "a",
+        "S3_SECRET_KEY": "b",
+        "S3_BUCKET": "ro-crates",
+        "CELERY_BROKER_URL": "redis://r/0",
+        "CELERY_RESULT_BACKEND": "redis://r/1",
+    }
 
 
 @pytest.fixture
 def flask_app():
+    """Bare app context for functions that only need jsonify."""
     app = Flask(__name__)
     with app.app_context():
         yield app
 
 
-# Test function: queue_ro_crate_validation_task
+@pytest.fixture
+def app_ctx():
+    """Storage-enabled app context, so current_app.config['SETTINGS'] is set."""
+    app = create_app(settings=Settings.from_env(_storage_env()))
+    with app.app_context():
+        yield app
 
-@pytest.mark.parametrize(
-        "crate_id, rocrate_exists, minio_client, delay_side_effects, payload, profiles_path, status_code, response_dict",
-        [
-            (
-                "crate123", True, "minio_client", None,
-                {
-                    "minio_config": {
-                        "endpoint": "localhost:9000",
-                        "accesskey": "admin",
-                        "secret": "password123",
-                        "ssl": False,
-                        "bucket": "test_bucket"
-                    },
-                    "root_path": "base_path",
-                    "webhook_url": "https://webhook.example.com",
-                    "profile_name": "default"
-                },
-                None,
-                202, {"message": "Validation in progress"}
-            ),
-            (
-                "crate123", True, "minio_client", Exception("Celery down"),
-                {
-                    "minio_config": {
-                        "endpoint": "localhost:9000",
-                        "accesskey": "admin",
-                        "secret": "password123",
-                        "ssl": False,
-                        "bucket": "test_bucket"
-                    },
-                    "root_path": "base_path",
-                    "webhook_url": "https://webhook.example.com",
-                    "profile_name": "default"
-                },
-                None,
-                500, {"error": "Celery down"}
-            ),
-        ],
-        ids=["successful_queue", "celery_server_down"]
-)
+
+# --- queue_ro_crate_validation_task --------------------------------------
+
 @patch("app.services.validation_service.process_validation_task_by_id.delay")
-@patch("app.services.validation_service.check_ro_crate_exists")
-@patch("app.services.validation_service.get_minio_client")
-def test_queue_ro_crate_validation_task(
-    mock_client,
-    mock_exists,
-    mock_delay,
-    flask_app: FlaskClient, crate_id: str, rocrate_exists: bool, minio_client: str,
-    delay_side_effects: Exception, payload: dict, profiles_path: str, status_code: int, response_dict: dict
-):
-    mock_delay.side_effect = delay_side_effects
-    mock_exists.return_value = rocrate_exists
-    mock_client.return_value = minio_client
+@patch("app.services.validation_service.resolve_crate")
+@patch("app.services.validation_service._build_storage")
+def test_queue_resolves_then_delays(mock_storage, mock_resolve, mock_delay, app_ctx):
+    response, status = queue_ro_crate_validation_task("crate123", "ro-crate", "https://hook")
 
-    minio_config = payload["minio_config"] if "minio_config" in payload else None
-    root_path = payload["root_path"] if "root_path" in payload else None
-    profile_name = payload["profile_name"] if "profile_name" in payload else None
-    webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
-
-    response, status_code = queue_ro_crate_validation_task(minio_config, crate_id, root_path,
-                                                           profile_name, webhook_url, profiles_path)
-
-    mock_client.assert_called_once_with(minio_config)
-    mock_exists.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, root_path)
-    mock_delay.assert_called_once_with(minio_config, crate_id, root_path, profile_name, webhook_url, profiles_path)
-    assert status_code == status_code
-    assert response.json == response_dict
+    assert status == 202
+    assert response.json == {"message": "Validation in progress"}
+    mock_resolve.assert_called_once()
+    mock_delay.assert_called_once_with("crate123", "ro-crate", "https://hook")
 
 
-@pytest.mark.parametrize(
-        "crate_id, rocrate_exists, minio_client, payload, iau_message",
-        [
-            (
-                "crate12z", False, "minio_client",
-                {
-                    "minio_config": {
-                        "endpoint": "localhost:9000",
-                        "accesskey": "admin",
-                        "secret": "password123",
-                        "ssl": False,
-                        "bucket": "test_bucket"
-                    },
-                    "root_path": "base_path",
-                    "webhook_url": "https://webhook.example.com",
-                    "profile_name": "default"
-                }, "No RO-Crate with prefix: crate12z"
-            ),
-        ],
-        ids=["no_rocrate_exists"]
-)
 @patch("app.services.validation_service.process_validation_task_by_id.delay")
-@patch("app.services.validation_service.check_ro_crate_exists")
-@patch("app.services.validation_service.get_minio_client")
-def test_queue_ro_crate_validation_task_failure(
-    mock_client,
-    mock_exists,
-    mock_delay,
-    flask_app: FlaskClient, crate_id: str, rocrate_exists: bool,
-    minio_client: str, payload: dict, iau_message: str
-):
-    mock_exists.return_value = rocrate_exists
-    mock_client.return_value = minio_client
-
-    minio_config = payload["minio_config"] if "minio_config" in payload else None
-    root_path = payload["root_path"] if "root_path" in payload else None
-    profile_name = payload["profile_name"] if "profile_name" in payload else None
-    webhook_url = payload["webhook_url"] if "webhook_url" in payload else None
-
-    with pytest.raises(InvalidAPIUsage) as exc_info:
-        queue_ro_crate_validation_task(minio_config, crate_id, root_path, profile_name, webhook_url)
-
-    assert iau_message in str(exc_info.value.message)
-    mock_client.assert_called_once_with(minio_config)
-    mock_exists.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, root_path)
+@patch("app.services.validation_service.resolve_crate", side_effect=CrateNotFound("nope"))
+@patch("app.services.validation_service._build_storage")
+def test_queue_not_found_propagates_without_queueing(mock_storage, mock_resolve, mock_delay, app_ctx):
+    with pytest.raises(CrateNotFound):
+        queue_ro_crate_validation_task("missing")
     mock_delay.assert_not_called()
 
 
-# Test function: run_metadata_validation (synchronous, no Celery)
+@patch("app.services.validation_service.process_validation_task_by_id.delay")
+@patch("app.services.validation_service.resolve_crate", side_effect=AmbiguousCrate("both"))
+@patch("app.services.validation_service._build_storage")
+def test_queue_ambiguous_propagates_without_queueing(mock_storage, mock_resolve, mock_delay, app_ctx):
+    with pytest.raises(AmbiguousCrate):
+        queue_ro_crate_validation_task("dup")
+    mock_delay.assert_not_called()
+
+
+# --- run_metadata_validation (synchronous) -------------------------------
 
 @patch("app.services.validation_service.validate_metadata")
 def test_run_metadata_validation_valid_is_200(mock_validate, flask_app):
@@ -147,9 +86,7 @@ def test_run_metadata_validation_valid_is_200(mock_validate, flask_app):
         status=ValidationStatus.VALID, profile="ro-crate", detail={"report": "ok"}
     )
 
-    response, status = run_metadata_validation(
-        '{"@graph": []}', "ro-crate", "/app/profiles"
-    )
+    response, status = run_metadata_validation('{"@graph": []}', "ro-crate", "/app/profiles")
 
     assert status == 200
     assert response.json["status"] == "valid"
@@ -163,9 +100,7 @@ def test_run_metadata_validation_invalid_is_200(mock_validate, flask_app):
     mock_validate.return_value = ValidationOutcome(
         status=ValidationStatus.INVALID, detail={"issues": [1]}
     )
-
     response, status = run_metadata_validation('{"@graph": []}')
-
     assert status == 200
     assert response.json["status"] == "invalid"
 
@@ -173,9 +108,7 @@ def test_run_metadata_validation_invalid_is_200(mock_validate, flask_app):
 @patch("app.services.validation_service.validate_metadata")
 def test_run_metadata_validation_error_outcome_is_422(mock_validate, flask_app):
     mock_validate.return_value = ValidationOutcome.from_error("validator blew up")
-
     response, status = run_metadata_validation('{"@graph": []}')
-
     assert status == 422
     assert response.json["status"] == "error"
     assert "validator blew up" in response.json["error"]
@@ -197,87 +130,31 @@ def test_run_metadata_validation_json_errors(flask_app, crate_json, response_err
     assert response_error in response.json["error"]
 
 
-# Test function: get_ro_crate_validation_task
+# --- get_ro_crate_validation_task ----------------------------------------
 
-@pytest.mark.parametrize(
-        "minio_config, crate_id, crate_exists, validation_exists, " +
-        "validation_value, status_code, error_message, minio_client",
-        [
-            (
-                {
-                    "endpoint": "localhost:9000",
-                    "accesskey": "admin",
-                    "secret": "password123",
-                    "ssl": False,
-                    "bucket": "test_bucket"
-                },
-                "crate123", True, True, {"status": "valid"}, 200, None,
-                "minio_client"
-            ),
-            (
-                {
-                    "endpoint": "localhost:9000",
-                    "accesskey": "admin",
-                    "secret": "password123",
-                    "ssl": False,
-                    "bucket": "test_bucket"
-                },
-                "crate123", False, False, None, 400, "No RO-Crate with prefix: crate123",
-                "minio_client"
-            ),
-            (
-                {
-                    "endpoint": "localhost:9000",
-                    "accesskey": "admin",
-                    "secret": "password123",
-                    "ssl": False,
-                    "bucket": "test_bucket"
-                },
-                "crate123", True, False, None, 400, "No validation result yet for RO-Crate: crate123",
-                "minio_client"
-            ),
-        ],
-        ids=["validation_exists", "rocrate_missing", "validation_missing"]
-)
-@patch("app.services.validation_service.check_ro_crate_exists")
-@patch("app.services.validation_service.check_validation_exists")
-@patch("app.services.validation_service.return_ro_crate_validation")
-@patch("app.services.validation_service.get_minio_client")
-def test_get_validation(
-    mock_client,
-    mock_return,
-    mock_validation,
-    mock_rocrate,
-    flask_app, minio_config: dict, crate_id: str, crate_exists: bool,
-    validation_exists: bool, validation_value: dict,
-    status_code: int, error_message: str, minio_client: str
-):
-    mock_client.return_value = minio_client
-    mock_rocrate.return_value = crate_exists
-    mock_validation.return_value = validation_exists
-    mock_return.return_value = validation_value
+@patch("app.services.validation_service._build_storage")
+def test_get_returns_stored_result(mock_storage, app_ctx):
+    storage = InMemoryStorage()
+    storage.put_bytes(result_key("validation-results", "crate123"), b'{"status": "valid"}')
+    mock_storage.return_value = storage
 
-    if crate_exists and validation_exists:
-        response, status = get_ro_crate_validation_task(minio_config, crate_id, "base_path")
+    response, status = get_ro_crate_validation_task("crate123")
 
-        mock_client.assert_called_once_with(minio_config)
-        mock_return.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
-        mock_rocrate.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
-        mock_validation.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
+    assert status == 200
+    assert response.json["status"] == "valid"
 
-        assert status == status_code
-        assert response == validation_value
 
-    else:
-        with pytest.raises(InvalidAPIUsage) as exc_info:
-            get_ro_crate_validation_task(minio_config, crate_id, "base_path")
+@patch("app.services.validation_service._build_storage")
+def test_get_missing_result_is_404(mock_storage, app_ctx):
+    mock_storage.return_value = InMemoryStorage()
 
-            assert exc_info.value.status_code == status_code
-            assert error_message in str(exc_info.value.message)
+    with pytest.raises(InvalidAPIUsage) as exc_info:
+        get_ro_crate_validation_task("crate123")
+    assert exc_info.value.status_code == 404
 
-            mock_rocrate.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
-            if crate_exists:
-                mock_validation.assert_called_once_with(minio_client, minio_config["bucket"], crate_id, "base_path")
-            else:
-                mock_validation.assert_not_called()
-            mock_return.assert_not_called()
+
+@patch("app.services.validation_service._build_storage")
+def test_get_invalid_id_raises(mock_storage, app_ctx):
+    mock_storage.return_value = InMemoryStorage()
+    with pytest.raises(InvalidCrateId):
+        get_ro_crate_validation_task("../bad")
