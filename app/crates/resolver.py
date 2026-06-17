@@ -44,9 +44,7 @@ def _object_exists(storage: StorageBackend, key: str) -> bool:
         return False
 
 
-def resolve_crate(
-    storage: StorageBackend, crate_id: str, crate_prefix: str
-) -> ResolvedCrate:
+def resolve_crate(storage: StorageBackend, crate_id: str, crate_prefix: str) -> ResolvedCrate:
     """Resolve ``crate_id`` to a concrete crate object.
 
     :raises InvalidCrateId: If the ID is malformed.

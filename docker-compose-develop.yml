@@ -23,6 +23,10 @@ services:
       - PROFILES_PATH=/app/profiles
     depends_on:
       - redis
+    # Metadata validation runs synchronously in this process, so the flask
+    # service needs the custom profiles mounted too (not just the worker).
+    volumes:
+      - ./tests/data/rocrate_validator_profiles:/app/profiles:ro
 
   celery_worker:
     build:
