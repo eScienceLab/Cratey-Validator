@@ -1,4 +1,7 @@
-version: '3.8'
+# Development stack: builds the app image locally from ./Dockerfile and mounts
+# the custom RO-Crate profiles into both the flask and worker containers. Use
+# this when working on the service itself; use docker-compose.yml to run the
+# published image.
 
 services:
   flask:

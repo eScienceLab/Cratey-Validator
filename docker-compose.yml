@@ -1,4 +1,8 @@
-version: '3.8'
+# Default stack, using the published image (ghcr.io/.../cratey-validator).
+# For running the service. Object storage is opt-in: set STORAGE_ENABLED=true
+# and start the "objectstore" profile (docker compose --profile objectstore up).
+# For local development against a freshly built image, use
+# docker-compose-develop.yml instead.
 
 services:
   flask:

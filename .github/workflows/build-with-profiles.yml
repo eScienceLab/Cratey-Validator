@@ -39,8 +39,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.fivesafes-profile
           push: true
+          # Bake the five-safes profile into the shared Dockerfile via build args.
+          build-args: |
+            FIVE_SAFES_PROFILE_VERSION=five-safes-0.7.4-beta
+            PROFILES_ARCHIVE_URL=https://github.com/eScienceLab/rocrate-validator/archive/refs/tags/five-safes-0.7.4-beta.tar.gz
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
