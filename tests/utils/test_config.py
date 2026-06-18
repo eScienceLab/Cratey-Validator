@@ -13,6 +13,22 @@ def test_defaults_when_storage_disabled():
     assert settings.flask_env == "development"
     assert settings.debug is True
     assert settings.profiles_path is None
+    assert settings.extra_profiles_path is None
+    assert settings.cache_path is None
+    assert settings.validation_offline is False
+
+
+def test_validation_tuning_vars_are_read():
+    settings = Settings.from_env(
+        {
+            "EXTRA_PROFILES_PATH": "/app/extra-profiles",
+            "CACHE_PATH": "/app/.rocrate-cache",
+            "VALIDATION_OFFLINE": "true",
+        }
+    )
+    assert settings.extra_profiles_path == "/app/extra-profiles"
+    assert settings.cache_path == "/app/.rocrate-cache"
+    assert settings.validation_offline is True
 
 
 def test_storage_enabled_requires_s3_and_broker_config():

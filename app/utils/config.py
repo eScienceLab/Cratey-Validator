@@ -47,6 +47,9 @@ class Settings:
     s3_use_ssl: bool
     s3_crate_prefix: str
     s3_results_prefix: str
+    extra_profiles_path: Optional[str]
+    cache_path: Optional[str]
+    validation_offline: bool
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "Settings":
@@ -91,6 +94,9 @@ class Settings:
             s3_use_ssl=_parse_bool(env.get("S3_USE_SSL")),
             s3_crate_prefix=_clean(env.get("S3_CRATE_PREFIX")) or "crates",
             s3_results_prefix=_clean(env.get("S3_RESULTS_PREFIX")) or "validation-results",
+            extra_profiles_path=_clean(env.get("EXTRA_PROFILES_PATH")),
+            cache_path=_clean(env.get("CACHE_PATH")),
+            validation_offline=_parse_bool(env.get("VALIDATION_OFFLINE")),
         )
 
 

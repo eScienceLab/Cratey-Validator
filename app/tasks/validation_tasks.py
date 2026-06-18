@@ -85,6 +85,9 @@ def run_validation_job(
                 local_path,
                 profile_name=profile_name,
                 profiles_path=settings.profiles_path,
+                extra_profiles_path=settings.extra_profiles_path,
+                cache_path=settings.cache_path,
+                offline=settings.validation_offline,
                 created_at=created_at,
             )
     finally:

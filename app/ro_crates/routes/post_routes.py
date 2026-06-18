@@ -71,12 +71,15 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
 
     crate_json = json_data["crate_json"]
+    profile_name = json_data.get("profile_name")
 
-    if "profile_name" in json_data:
-        profile_name = json_data["profile_name"]
-    else:
-        profile_name = None
+    settings = current_app.config["SETTINGS"]
 
-    profiles_path = current_app.config["PROFILES_PATH"]
-
-    return run_metadata_validation(crate_json, profile_name, profiles_path=profiles_path)
+    return run_metadata_validation(
+        crate_json,
+        profile_name,
+        profiles_path=settings.profiles_path,
+        extra_profiles_path=settings.extra_profiles_path,
+        cache_path=settings.cache_path,
+        offline=settings.validation_offline,
+    )

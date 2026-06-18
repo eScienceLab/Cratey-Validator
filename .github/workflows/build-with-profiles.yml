@@ -40,10 +40,12 @@ jobs:
         with:
           context: .
           push: true
-          # Bake the five-safes profile into the shared Dockerfile via build args.
+          # Add the five-safes profile (via EXTRA_PROFILES_PATH) and warm its
+          # cache, using the shared Dockerfile's build args.
           build-args: |
             FIVE_SAFES_PROFILE_VERSION=five-safes-0.7.4-beta
             PROFILES_ARCHIVE_URL=https://github.com/eScienceLab/rocrate-validator/archive/refs/tags/five-safes-0.7.4-beta.tar.gz
+            EXTRA_PROFILES_PATH=/app/extra-profiles
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 

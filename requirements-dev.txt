@@ -204,7 +204,7 @@ rich==13.9.4
     #   roc-validator
 rich-click==1.9.8
     # via roc-validator
-roc-validator==0.9.0
+roc-validator==0.10.0
     # via ro-crate-validation-service (pyproject.toml)
 ruff==0.15.17
     # via ro-crate-validation-service (pyproject.toml)

@@ -110,7 +110,15 @@ def test_validate_metadata_success(
 
         crate_json = payload.get("crate_json")
         profile_name = payload.get("profile_name")
-        mock_run.assert_called_once_with(crate_json, profile_name, profiles_path=profiles_path)
+        # Storage-disabled client => all validation-tuning settings are unset.
+        mock_run.assert_called_once_with(
+            crate_json,
+            profile_name,
+            profiles_path=profiles_path,
+            extra_profiles_path=None,
+            cache_path=None,
+            offline=False,
+        )
         assert response.status_code == status_code
         assert response.json == response_json
 

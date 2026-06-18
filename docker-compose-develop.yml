@@ -11,7 +11,7 @@ services:
     ports:
       - "5001:5000"
     environment:
-      - FLASK_APP=cratey.py
+      - FLASK_APP=wsgi.py
       - FLASK_ENV=development
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -23,7 +23,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BUCKET=${S3_BUCKET}
       - S3_USE_SSL=${S3_USE_SSL:-false}
-      - PROFILES_PATH=/app/profiles
+      - EXTRA_PROFILES_PATH=/app/profiles
     depends_on:
       - redis
     # Metadata validation runs synchronously in this process, so the flask
@@ -47,7 +47,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BUCKET=${S3_BUCKET}
       - S3_USE_SSL=${S3_USE_SSL:-false}
-      - PROFILES_PATH=/app/profiles
+      - EXTRA_PROFILES_PATH=/app/profiles
     depends_on:
       - redis
     volumes:

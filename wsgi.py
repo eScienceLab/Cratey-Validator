@@ -1,9 +1,5 @@
 """Entry point for the Flask application."""
 
-# Author: Alexander Hambley
-# License: MIT
-# Copyright (c) 2025 eScience Lab, The University of Manchester
-
 from app import create_app
 from app.services.logging_service import setup_logging
 

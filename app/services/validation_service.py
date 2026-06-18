@@ -51,7 +51,12 @@ def queue_ro_crate_validation_task(
 
 
 def run_metadata_validation(
-    crate_json: str, profile_name=None, profiles_path=None
+    crate_json: str,
+    profile_name=None,
+    profiles_path=None,
+    extra_profiles_path=None,
+    cache_path=None,
+    offline=False,
 ) -> tuple[Response, int]:
     """
     Validate RO-Crate metadata synchronously and return the result inline.
@@ -62,7 +67,10 @@ def run_metadata_validation(
 
     :param crate_json: The RO-Crate JSON-LD metadata, as a string.
     :param profile_name: The profile to validate against.
-    :param profiles_path: A path to the profile definition directory.
+    :param profiles_path: A profiles directory that replaces the bundled set.
+    :param extra_profiles_path: A profiles directory added to the bundled set.
+    :param cache_path: HTTP cache location for the validator.
+    :param offline: Validate using only the cache (no network).
     :return: A JSON response and HTTP status code.
     """
     if not crate_json:
@@ -76,7 +84,14 @@ def run_metadata_validation(
     if not metadata:
         return jsonify({"error": "Required parameter crate_json is empty"}), 422
 
-    outcome = validate_metadata(metadata, profile_name=profile_name, profiles_path=profiles_path)
+    outcome = validate_metadata(
+        metadata,
+        profile_name=profile_name,
+        profiles_path=profiles_path,
+        extra_profiles_path=extra_profiles_path,
+        cache_path=cache_path,
+        offline=offline,
+    )
     status_code = 422 if outcome.status is ValidationStatus.ERROR else 200
     return jsonify(outcome.to_dict()), status_code
 

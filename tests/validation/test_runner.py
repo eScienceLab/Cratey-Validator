@@ -76,3 +76,34 @@ def test_validate_crate_path_exception_becomes_error_outcome(monkeypatch):
     outcome = runner.validate_crate_path("/tmp/crate")
     assert outcome.status is ValidationStatus.ERROR
     assert "bad crate" in outcome.error
+
+
+def test_offline_cache_and_extra_profiles_are_passed_through(monkeypatch):
+    fake = FakeServices(result=FakeResult(has_issues=False))
+    monkeypatch.setattr(runner, "services", fake)
+
+    runner.validate_crate_path(
+        "/tmp/crate",
+        profile_name="five-safes-crate",
+        extra_profiles_path="/app/extra-profiles",
+        cache_path="/app/.rocrate-cache",
+        offline=True,
+    )
+
+    s = fake.last_settings
+    assert s["extra_profiles_path"] == "/app/extra-profiles"
+    assert s["cache_path"] == "/app/.rocrate-cache"
+    assert s["offline"] is True
+
+
+def test_offline_and_cache_omitted_when_not_set(monkeypatch):
+    fake = FakeServices(result=FakeResult(has_issues=False))
+    monkeypatch.setattr(runner, "services", fake)
+
+    runner.validate_metadata({"@graph": []})
+
+    s = fake.last_settings
+    assert "extra_profiles_path" not in s
+    assert "cache_path" not in s
+    # offline defaults to False and is only forwarded when enabled
+    assert s.get("offline", False) is False

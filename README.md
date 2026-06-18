@@ -256,11 +256,27 @@ fails quickly with a clear error rather than at the first request.
 | `S3_RESULTS_PREFIX` | `validation-results` | key prefix for results |
 | `CELERY_BROKER_URL` | — | Redis broker URL |
 | `CELERY_RESULT_BACKEND` | — | Celery result backend URL |
-| `PROFILES_PATH` | — | directory of 'custom' RO-Crate profiles (optional) |
+| `PROFILES_PATH` | — | directory of profiles that **replaces** the bundled set (optional) |
+| `EXTRA_PROFILES_PATH` | — | directory of profiles **added** to the bundled set (optional) |
+| `CACHE_PATH` | per-user dir | HTTP cache location for the validator |
+| `VALIDATION_OFFLINE` | `false` | validate using only the cache (no network) |
 | `FLASK_ENV` | `development` | `production` disables debug |
 
 When `STORAGE_ENABLED=true`, the `S3_*` and `CELERY_*` variables above are
 **required** — startup fails if any are missing.
+
+### Profiles, cache, and offline validation
+
+Custom profiles (e.g. `five-safes-crate`) are best added with
+`EXTRA_PROFILES_PATH`, which **adds** them to the validator's bundled profiles —
+unlike `PROFILES_PATH`, which replaces the bundled set entirely. The published
+"with profiles" image bakes the five-safes profile in this way.
+
+The validator caches the profile/context HTTP resources it fetches. The Docker
+image pre-populates this cache at build time (`rocrate-validator cache warm`),
+so setting `VALIDATION_OFFLINE=true` runs validation entirely from the cache
+with no network access. Online validation (the default) also uses and refreshes
+the cache. (Requires rocrate-validator ≥ 0.10.0.)
 
 ## Running the service
 
@@ -339,25 +355,25 @@ app/
 ├── __init__.py                 # app factory: config, blueprints, error handlers, request IDs
 ├── health.py                   # /healthz and /readyz
 ├── storage/                    # object-storage abstraction
-│   ├── base.py                 # StorageBackend protocol + ObjectStat
-│   ├── s3.py                   # boto3 implementation (any S3-compatible store)
-│   ├── memory.py               # in-memory backend (tests / local)
-│   └── errors.py               # StorageError, ObjectNotFound
+│   ├── base.py                 #   StorageBackend protocol + ObjectStat
+│   ├── s3.py                   #   boto3 implementation (any S3-compatible store)
+│   ├── memory.py               #   in-memory backend (tests / local)
+│   └── errors.py               #   StorageError, ObjectNotFound
 ├── crates/                     # crate identity, layout, resolution
-│   ├── ids.py                  # 'Crate ID' validation
-│   ├── layout.py               # object keys
-│   └── resolver.py             # deterministic zip/dir resolution
+│   ├── ids.py                  #   'Crate ID' validation
+│   ├── layout.py               #   object keys
+│   └── resolver.py             #   deterministic zip/dir resolution
 ├── validation/                 # validation boundary
-│   ├── results.py              # ValidationOutcome (valid/invalid/error)
-│   └── runner.py               # wraps rocrate-validator
-├── ro_crates/routes/           # HTTP endpoints (metadata + ID-based)
+│   ├── results.py              #   ValidationOutcome (valid/invalid/error)
+│   └── runner.py               #   wraps rocrate-validator
+├── ro_crates/routes/           #   HTTP endpoints (metadata + ID-based)
 ├── services/
-│   ├── validation_service.py   # request handling: resolve, queue, read results
-│   └── logging_service.py      # JSON logging, request IDs, redaction
-├── tasks/validation_tasks.py   # Celery task: fetch → validate → persist → webhook
+│   ├── validation_service.py   #   request handling: resolve, queue, read results
+│   └── logging_service.py      #   JSON logging, request IDs, redaction
+├── tasks/validation_tasks.py   #   Celery task: fetch → validate → persist → webhook
 └── utils/
-    ├── config.py               # validated Settings
-    └── webhook_utils.py        # webhook delivery with retry/backoff
+    ├── config.py               #   validated Settings
+    └── webhook_utils.py        #   webhook delivery with retry/backoff
 ```
 
 ## License

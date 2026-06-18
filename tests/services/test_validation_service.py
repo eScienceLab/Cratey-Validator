@@ -98,7 +98,12 @@ def test_run_metadata_validation_valid_is_200(mock_validate, flask_app):
     assert status == 200
     assert response.json["status"] == "valid"
     mock_validate.assert_called_once_with(
-        {"@graph": []}, profile_name="ro-crate", profiles_path="/app/profiles"
+        {"@graph": []},
+        profile_name="ro-crate",
+        profiles_path="/app/profiles",
+        extra_profiles_path=None,
+        cache_path=None,
+        offline=False,
     )
 
 
