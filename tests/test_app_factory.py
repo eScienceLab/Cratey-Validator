@@ -81,3 +81,17 @@ def test_incoming_request_id_is_echoed():
     )
 
     assert response.headers["X-Request-ID"] == "caller-supplied-id"
+
+
+def test_openapi_groups_posts_under_one_tag_with_unique_tags():
+    """Both POST endpoints share one docs group and the spec has no duplicate tags."""
+    app = create_app(settings=Settings.from_env(_storage_env()))
+    spec = app.test_client().get("/openapi.json").json
+
+    tag_names = [tag["name"] for tag in spec["tags"]]
+    assert len(tag_names) == len(set(tag_names))
+
+    paths = spec["paths"]
+    assert paths["/v1/ro_crates/validate_metadata"]["post"]["tags"] == ["Post_Routes"]
+    assert paths["/v1/ro_crates/{crate_id}/validation"]["post"]["tags"] == ["Post_Routes"]
+    assert paths["/v1/ro_crates/{crate_id}/validation"]["get"]["tags"] == ["Get_Routes"]

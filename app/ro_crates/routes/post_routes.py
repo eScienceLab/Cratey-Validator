@@ -10,11 +10,12 @@ from app.services.validation_service import (
 )
 
 # Always-on blueprint:
-post_routes_bp = APIBlueprint("post_routes", __name__)
+post_routes_bp = APIBlueprint("post_routes", __name__, tag="Post_Routes")
 
 # Store-backed blueprint. Only registered when storage is enabled
 # (see app.create_app), so the ID-based routes are unreachable by default.
-minio_post_routes_bp = APIBlueprint("minio_post_routes", __name__)
+# Shares the always-on blueprint's docs tag so Swagger shows one POST group.
+minio_post_routes_bp = APIBlueprint("minio_post_routes", __name__, tag="Post_Routes")
 
 
 class ValidateCrate(Schema):

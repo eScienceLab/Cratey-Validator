@@ -48,6 +48,17 @@ def create_app(settings: Settings | None = None) -> APIFlask:
     app.config["STORAGE_ENABLED"] = settings.storage_enabled
     app.config["PROFILES_PATH"] = settings.profiles_path
 
+    # APIFlask emits one top-level tag entry per blueprint, so the two POST
+    # blueprints sharing a tag would duplicate it; OpenAPI requires unique
+    # tag names.
+    @app.spec_processor
+    def dedupe_spec_tags(spec):
+        seen = set()
+        spec["tags"] = [
+            t for t in spec.get("tags", []) if not (t["name"] in seen or seen.add(t["name"]))
+        ]
+        return spec
+
     # Always available:
     app.register_blueprint(health_bp)
     app.register_blueprint(v1_post_bp, url_prefix="/v1/ro_crates")
