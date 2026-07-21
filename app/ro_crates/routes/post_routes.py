@@ -1,38 +1,24 @@
-"""Defines post API endpoints for validating RO-Crates using their IDs from MinIO."""
-
-# Author: Alexander Hambley
-# License: MIT
-# Copyright (c) 2025 eScience Lab, The University of Manchester
+"""POST endpoints for validating RO-Crates by stored ID or by inline metadata."""
 
 from apiflask import APIBlueprint, Schema
-from apiflask.fields import String, Boolean
-from marshmallow.fields import Nested
+from apiflask.fields import String
 from flask import Response, current_app
 
 from app.services.validation_service import (
     queue_ro_crate_validation_task,
-    queue_ro_crate_metadata_validation_task,
+    run_metadata_validation,
 )
 
 # Always-on blueprint:
-post_routes_bp = APIBlueprint("post_routes", __name__)
+post_routes_bp = APIBlueprint("post_routes", __name__, tag="Post_Routes")
 
-# MinIO blueprint. Only registered when MINIO_ENABLED is true
+# Store-backed blueprint. Only registered when storage is enabled
 # (see app.create_app), so the ID-based routes are unreachable by default.
-minio_post_routes_bp = APIBlueprint("minio_post_routes", __name__)
-
-
-class MinioConfig(Schema):
-    endpoint = String(required=True)
-    accesskey = String(required=True)
-    secret = String(required=True)
-    ssl = Boolean(required=True)
-    bucket = String(required=True)
+# Shares the always-on blueprint's docs tag so Swagger shows one POST group.
+minio_post_routes_bp = APIBlueprint("minio_post_routes", __name__, tag="Post_Routes")
 
 
 class ValidateCrate(Schema):
-    minio_config = Nested(MinioConfig, required=True)
-    root_path = String(required=False)
     profile_name = String(required=False)
     webhook_url = String(required=False)
 
@@ -46,51 +32,26 @@ class ValidateJSON(Schema):
 @minio_post_routes_bp.input(ValidateCrate(partial=False), location="json")
 def validate_ro_crate_via_id(json_data, crate_id) -> tuple[Response, int]:
     """
-    Endpoint to validate an RO-Crate using its ID from MinIO.
+    Validate a stored RO-Crate by its ID.
+
+    Storage credentials and layout are configured server-side; the request body
+    carries only optional fields.
 
     Path Parameters:
     - **crate_id**: The RO-Crate ID. _Required_.
 
     Request Body Parameters:
-    - **minio_config**: The MinIO bucket containing the RO-Crate. _Required_
-      - **endpoint**: Endpoint, e.g. 'localhost:9000'
-      - **accesskey**: Access key / username
-      - **secret**: Secret / password
-      - **ssl**: Use SSL encryption? True/False
-      - **bucket**: The MinIO bucket to access
-    - **root_path**: The root path containing the RO-Crate. _Optional_
     - **profile_name**: The profile name for validation. _Optional_.
-    - **webhook_url**: The webhook URL where validation results will be sent. _Optional_.
+    - **webhook_url**: The webhook URL where the validation result will be sent. _Optional_.
 
     Returns:
     - A tuple containing the validation task's response and an HTTP status code.
-
-    Raises:
-    - KeyError: If required parameters (`crate_id` or `webhook_url`) are missing.
     """
 
-    minio_config = json_data["minio_config"]
+    profile_name = json_data.get("profile_name")
+    webhook_url = json_data.get("webhook_url")
 
-    if "root_path" in json_data:
-        root_path = json_data["root_path"]
-    else:
-        root_path = None
-
-    if "webhook_url" in json_data:
-        webhook_url = json_data["webhook_url"]
-    else:
-        webhook_url = None
-
-    if "profile_name" in json_data:
-        profile_name = json_data["profile_name"]
-    else:
-        profile_name = None
-
-    profiles_path = current_app.config["PROFILES_PATH"]
-
-    return queue_ro_crate_validation_task(
-        minio_config, crate_id, root_path, profile_name, webhook_url, profiles_path
-    )
+    return queue_ro_crate_validation_task(crate_id, profile_name, webhook_url)
 
 
 @post_routes_bp.post("/validate_metadata")
@@ -111,14 +72,15 @@ def validate_ro_crate_metadata(json_data) -> tuple[Response, int]:
     """
 
     crate_json = json_data["crate_json"]
+    profile_name = json_data.get("profile_name")
 
-    if "profile_name" in json_data:
-        profile_name = json_data["profile_name"]
-    else:
-        profile_name = None
+    settings = current_app.config["SETTINGS"]
 
-    profiles_path = current_app.config["PROFILES_PATH"]
-
-    return queue_ro_crate_metadata_validation_task(
-        crate_json, profile_name, profiles_path=profiles_path
+    return run_metadata_validation(
+        crate_json,
+        profile_name,
+        profiles_path=settings.profiles_path,
+        extra_profiles_path=settings.extra_profiles_path,
+        cache_path=settings.cache_path,
+        offline=settings.validation_offline,
     )
