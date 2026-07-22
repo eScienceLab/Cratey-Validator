@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # Keep in sync with requirements-dev.txt
-          pip install pytest==9.1.0 requests==2.33.1 boto3==1.43.29
+          pip install pytest==9.1.0 requests==2.34.2 boto3==1.43.29
 
       - name: Run integration tests (brings up the compose stack)
         run: |
