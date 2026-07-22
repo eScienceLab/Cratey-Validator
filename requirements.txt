@@ -147,7 +147,7 @@ rdflib[html]==7.1.4
     #   roc-validator
 redis==8.0.1
     # via ro-crate-validation-service (pyproject.toml)
-requests==2.33.1
+requests==2.34.2
     # via
     #   requests-cache
     #   ro-crate-validation-service (pyproject.toml)
