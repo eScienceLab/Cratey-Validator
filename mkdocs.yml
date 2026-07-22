@@ -1,2 +1,8 @@
 site_name: Crate Validation Service
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - API: api.md
+  - ENTRUST: entrust.md
+  - Contributions: contribution.md
 theme: readthedocs
