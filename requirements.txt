@@ -160,7 +160,7 @@ rich==13.9.4
     #   roc-validator
 rich-click==1.8.9
     # via roc-validator
-roc-validator==0.10.0
+roc-validator==0.11.2
     # via ro-crate-validation-service (pyproject.toml)
 s3transfer==0.18.0
     # via boto3
