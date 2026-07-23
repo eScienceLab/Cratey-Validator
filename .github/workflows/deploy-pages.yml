@@ -3,9 +3,9 @@ name: Deploy Pages
 
 on:
   # Runs on pushes targeting the default branch and c4 files
-  push:
-    branches: ["main"]
-
+  pull_request:
+    branches: [ develop ]
+    
   # Allows you to run this workflow manually from the Actions tab
   workflow_call:
   workflow_dispatch:
