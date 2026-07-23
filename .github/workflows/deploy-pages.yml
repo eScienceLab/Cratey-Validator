@@ -34,7 +34,6 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: ls ./docs
         run: bun install --filter './docs'
 
       - name: Validate
