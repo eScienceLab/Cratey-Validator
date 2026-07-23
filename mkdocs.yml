@@ -6,3 +6,8 @@ nav:
   - ENTRUST: entrust.md
   - Contributions: contribution.md
 theme: readthedocs
+plugins:
+  - search
+  - mermaid2
+markdown_extensions:
+  - admonition
