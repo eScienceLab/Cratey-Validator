@@ -1,4 +1,7 @@
 site_name: Crate Validation Service
+plugins:
+  - search
+  - likec4
 nav:
   - Home: index.md
   - Installation: installation.md
