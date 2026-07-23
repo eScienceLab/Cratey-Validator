@@ -40,7 +40,7 @@ jobs:
           output: dist
           # required if you don't set a custom domain for the repository
           # https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#types-of-github-pages-sites
-          base: ${{ steps.pages.outputs.base_path }}
+          base: ${{ steps.pages.outputs.base_path }}/docs/c4_diagrams/likec4_src
           likec4-version: latest
 
       - name: Upload artifact
