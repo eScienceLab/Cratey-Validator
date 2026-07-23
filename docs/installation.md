@@ -1,12 +1,12 @@
 # Installation & Setup
 
-The service runs with Docker Compose. The default setup validates metadata documents only; enabling object storage adds validation of complete stored crates. If you are upgrading from a 1.\* release, see the [upgrade guide](upgrading.md) first.
+The RO-Crate Validation Service works in two ways: a metadata-only mode, in which the contents of an `ro-crate-metadata.json` file are assessed, and storage-backed validation, where complete RO-Crates (zip or directory) are evaluated. 
 
 ## Quick start
 
 You will need Docker with Docker Compose. 
 
-First, clone the repository, copy the example environment file, and start the stack:
+To start, clone the repository, copy the example environment file, and start the stack:
 
 ```bash
 git clone https://github.com/eScienceLab/RO-Crate-Validation-Service.git
@@ -16,9 +16,11 @@ docker compose up --build
 ```
 
 !!! warning
-    You should update the default `.env` values when running the object store in production.
+    Remember to update the default `.env` values when running the object store in production.
 
-The API is served at `http://localhost:5001`. Redis and a Celery worker are also started, but are only used once storage is enabled. To check the service is up:
+The API is served at `http://localhost:5001`. Redis and a Celery worker are also started, but these are only used once storage is enabled. 
+
+To check the service is up, run:
 
 ```bash
 curl http://localhost:5001/healthz
@@ -26,19 +28,25 @@ curl http://localhost:5001/healthz
 
 This returns `{"status": "ok"}`.
 
-To validate some metadata, post the contents of an `ro-crate-metadata.json` file to the metadata endpoint. The [running example](https://www.researchobject.org/ro-crate/specification/1.2/introduction.html#running-example) from the RO-Crate specification is a good test document. The file needs to be sent as an escaped JSON string, which `jq` can do:
+To validate the contents of an `ro-crate-metadata.json` file, post to the metadata endpoint. The [running example](https://www.researchobject.org/ro-crate/specification/1.2/introduction.html#running-example) from the RO-Crate specification is a good test document. 
+
+The file needs to be sent as an escaped JSON string, which `jq` can do:
 
 ```bash
 jq -Rs '{crate_json: .}' ro-crate-metadata.json | curl -X POST http://localhost:5001/v1/ro_crates/validate_metadata -H 'Content-Type: application/json' -d @-
 ```
 
-The response contains a `status` of `valid`, `invalid` or `error`, along with the detailed findings. The [API reference](api.md) describes the endpoints and result format in full.
+The response contains a `status` of `valid`, `invalid` or `error`, along with the detailed validation. For more information, the [API reference](api.md) describes the endpoints and result format in full.
 
 ## Enabling object storage
 
-To validate a complete RO-Crate (zip or directory) held in an object store, set `STORAGE_ENABLED=true` in `.env`. Storage mode requires six settings, [described below](#configuration-reference): `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`. The service will fail at startup if any are missing. The Compose stack already sets the Celery variables to the bundled Redis, so in practice only the S3 settings in `.env` matter here.
+To validate a complete RO-Crate (zip or directory) held in an object store, set `STORAGE_ENABLED=true` in `.env`. 
 
-Then start the stack with the bundled development object store (RustFS):
+The storage-backed validation mode requires six settings, [described below](#configuration-reference): `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`. 
+
+The service will fail at startup if any are missing. The Compose stack already sets the Celery variables to the bundled Redis, so in practice only the S3 settings in `.env` matter here.
+
+Then start the stack with the bundled development object store (RustFS), run:
 
 ```bash
 docker compose --profile objectstore up --build
@@ -47,9 +55,9 @@ docker compose --profile objectstore up --build
 RustFS serves the S3 API on port 9000 and a web console at `http://localhost:9001`. Development credentials are set in `example.env`. 
 
 !!! warning
-    The service does not create the bucket itself. Create the bucket in the console or with any S3 client. The bucket name needs to match `S3_BUCKET` (`ro-crates` by default). 
+    The service does not create the bucket itself. Create the bucket in the console or with an S3 client. The bucket name needs to match `S3_BUCKET` (`ro-crates` by default). 
 
-Upload an RO-Crate under the crate prefix: `crates/<id>.zip` for a zipped RO-Crate, or `crates/<id>/` for a directory. Note that for a zipped RO-Crate, `ro-crate-metadata.json` must be at the root of the archive.
+Upload an RO-Crate under the prefix: `crates/<id>.zip` for a zipped RO-Crate, or `crates/<id>/` for a directory. Note that for a zipped RO-Crate, `ro-crate-metadata.json` must be at the root of the archive.
 
 The readiness endpoint checks the object store and broker connections:
 
@@ -59,7 +67,9 @@ curl http://localhost:5001/readyz
 
 ## Using your own object store
 
-Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO and Ceph: set `S3_ENDPOINT`, the credentials and `S3_BUCKET` for your store, and skip the `objectstore` profile. If you already run a 1.\* release against MinIO, the [upgrade guide](upgrading.md) maps the old settings to the new ones.
+Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO and Ceph: set `S3_ENDPOINT`, the credentials and `S3_BUCKET` for your store. In this case, do not run the `objectstore` profile. 
+
+If you already use a 1.\* release against MinIO, the [upgrade guide](upgrading.md) maps the old settings to the new ones.
 
 ## Configuration reference
 
@@ -84,11 +94,12 @@ Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO 
 
 ## Custom profiles
 
-The validator comes with the base RO-Crate profiles. For Five Safes validation, the prebuilt `ghcr.io/esciencelab/ro-crate-validation-service-fivesafes-profile` image has the `five-safes-crate` profile already included; see [Five Safes validation](five-safes.md).
+The validator comes with several RO-Crate profiles, and for the Five Safes RO-Crate, the prebuilt `ghcr.io/esciencelab/ro-crate-validation-service-fivesafes-profile` image has the `five-safes-crate` profile already included; see [Five Safes validation](five-safes.md).
 
-Adding other profiles works by mounting a directory of profile definitions into both the `flask` and `celery_worker` containers. You set `EXTRA_PROFILES_PATH` to the mounted path. Both containers need the mount as metadata-only validation runs in the API process and stored-crate validation runs in the worker. There is a working example in `docker-compose-develop.yml`. 
+To add other profiles, mount a directory into both the `flask` and `celery_worker` containers, and set `EXTRA_PROFILES_PATH` to the mounted path. Note that both containers need the mount as metadata-only validation runs in the API process and stored-crate validation runs in the worker. There is a working example in `docker-compose-develop.yml`. 
 
-`EXTRA_PROFILES_PATH` adds the directory to the bundled profiles, whereas `PROFILES_PATH` replaces them entirely.
+!!! note
+    `EXTRA_PROFILES_PATH` adds the directory to the bundled profiles, whereas `PROFILES_PATH` replaces them entirely.
 
 ## Offline validation
 
