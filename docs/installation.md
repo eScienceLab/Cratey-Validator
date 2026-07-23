@@ -1,5 +1,9 @@
 # Installation
 
+```likec4-view
+ro-crate_service
+```
+
 ## Service Snapshot
 
 Cratey Validator is a web service that checks whether RO-Crates follow the 
