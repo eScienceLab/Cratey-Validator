@@ -2,8 +2,9 @@ site_name: Crate Validation Service
 nav:
   - Home: index.md
   - Installation: installation.md
+  - Upgrading: upgrading.md
   - API: api.md
-  - ENTRUST: entrust.md
+  - Five Safes RO-Crate: five-safes.md
   - Contributions: contribution.md
 theme: readthedocs
 plugins:

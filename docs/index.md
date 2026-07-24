@@ -1,6 +1,6 @@
 # RO-Crate Validation Service
 
-The RO-Crate Validation Service evaluates whether [RO-Crates](https://www.researchobject.org/ro-crate/) conform to the RO-Crate specification and to community profiles. The service wraps the [`rocrate-validator`](https://rocrate-validator.readthedocs.io/) library in a REST API, and is deployed as a Docker image. The RO-Crate Validation Service enables pipelines, other services, and Trusted Research Environments (TREs) to validate crates over HTTP without running the validator themselves.
+The RO-Crate Validation Service evaluates whether [RO-Crates](https://www.researchobject.org/ro-crate/) conform to the RO-Crate specification and to community profiles. The service wraps the [`rocrate-validator`](https://rocrate-validator.readthedocs.io/) library in a REST API, and is deployed as a Docker image. The RO-Crate Validation Service enables pipelines, other services, and Trusted Research Environments (TREs) to validate an RO-Crate over HTTP without running the validator themselves.
 
 ## RO-Crates and profiles in brief
 
@@ -31,10 +31,10 @@ flowchart LR
 
 ## Documentation
 
-- To run the service yourself, start with [Installation & Setup](installation.md), or with the [Upgrade Guide](upgrading.md) if you already run a 1.\* version. 
+- To run the service yourself, start with [Installation & Setup](installation.md), or with the [Upgrade Guide](upgrading.md) if you already run a 1.x version. 
 - The [API Reference](api.md) documents the endpoints for anyone integrating against a running instance. 
 - The [Five Safes RO-Crate](five-safes.md) page walks through validating RO-Crates in a TRE. 
-- To help contribute to the service, see [Development](development.md).
+- To help contribute to the service, please see the [Contribution Guide](contribution.md).
 
 ## About
 

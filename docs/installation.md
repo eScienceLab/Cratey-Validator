@@ -69,7 +69,7 @@ curl http://localhost:5001/readyz
 
 Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO and Ceph: set `S3_ENDPOINT`, the credentials and `S3_BUCKET` for your store. In this case, do not run the `objectstore` profile. 
 
-If you already use a 1.\* release against MinIO, the [upgrade guide](upgrading.md) maps the old settings to the new ones.
+If you already use a 1.x release against MinIO, the [upgrade guide](upgrading.md) maps the old settings to the new ones.
 
 ## Configuration reference
 
@@ -79,16 +79,16 @@ If you already use a 1.\* release against MinIO, the [upgrade guide](upgrading.m
 | `S3_ENDPOINT` | — | Object store endpoint, e.g. `objectstore:9000` (required in storage mode) |
 | `S3_ACCESS_KEY` | — | Object store access key (required in storage mode) |
 | `S3_SECRET_KEY` | — | Object store secret key (required in storage mode) |
-| `S3_BUCKET` | — | Bucket holding crates and results (required in storage mode) |
+| `S3_BUCKET` | — | Bucket holding RO-Crates and results (required in storage mode) |
 | `S3_USE_SSL` | `false` | Use HTTPS to the object store |
 | `S3_REGION` | — | Region; needed for AWS S3 |
-| `S3_CRATE_PREFIX` | `crates` | Key prefix crates are read from |
+| `S3_CRATE_PREFIX` | `crates` | Key prefix RO-Crates are read from |
 | `S3_RESULTS_PREFIX` | `validation-results` | Key prefix results are written to |
 | `CELERY_BROKER_URL` | — | Redis broker URL (required in storage mode; preset in the Compose stack) |
 | `CELERY_RESULT_BACKEND` | — | Celery result backend URL (required in storage mode; preset in the Compose stack) |
 | `PROFILES_PATH` | — | Profiles directory that replaces the bundled profiles |
 | `EXTRA_PROFILES_PATH` | — | Profiles directory added to the bundled profiles |
-| `CACHE_PATH` | `/app/.rocrate-cache` in the published image | Validator HTTP cache location |
+| `CACHE_PATH` | `/app/.rocrate-cache` | Validator HTTP cache location |
 | `VALIDATION_OFFLINE` | `false` | Validate using only the cache, with no network access |
 | `FLASK_ENV` | `development` | Set to `production` to disable debug behaviour |
 
