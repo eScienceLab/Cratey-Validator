@@ -1,116 +1,116 @@
-# Crate Validator REST API
+# API Reference
 
-## Overview
+The examples below use the Compose stack's local address, `http://localhost:5001`. Note that the service serves its own OpenAPI specification at `/docs`.
 
-The Crate Validator REST API exposes operations for validating stored 
-RO-Crates,  validating submitted RO-Crate metadata, and retrieving saved 
-validation results.
+!!! note
+    `POST /v1/ro_crates/validate_metadata` is always available, but the **storage-backed endpoints** are only available when the service runs with `STORAGE_ENABLED=true` (see [Installation & Setup](installation.md#enabling-object-storage)); without this set, requests return `404`. 
 
-Stored RO-Crate validation uses MinIO-compatible object storage. Requests that 
-operate on stored crates include `minio_config`, which tells the service where 
-the crate is stored and which bucket to use.
+## Validate metadata
 
+`POST /v1/ro_crates/validate_metadata`
 
-## Endpoints
+This validates the contents of an `ro-crate-metadata.json` document and returns the result in the response.
 
-### `POST /v1/ro_crates/{crate_id}/validation`
+| Field | Required | Description |
+|-------|----------|-------------|
+| `crate_json` | yes | The metadata document, as a JSON string |
+| `profile_name` | no | Profile to validate against, e.g. `ro-crate-1.2`; defaults to `ro-crate-1.1` when omitted |
 
-Queues validation for an RO-Crate stored in MinIO-compatible object storage. 
-The `crate_id` path parameter is the name used to find the crate object in the 
-configured bucket.
+!!! warning
+    Currently, the validation profile is not detected from the RO-Crate. In other words, a `conformsTo` declaration in the metadata does not influence which validation profile is used by the validator, and the validation always runs against `profile_name`, or `ro-crate-1.1` when it is omitted.
 
-Request body:
+To validate a file:
 
-```jsonc
+```bash
+jq -Rs '{crate_json: .}' ro-crate-metadata.json | curl -X POST http://localhost:5001/v1/ro_crates/validate_metadata -H 'Content-Type: application/json' -d @-
+```
+
+To choose a profile, add it to the `jq` object: `jq -Rs '{crate_json: ., profile_name: "ro-crate-1.2"}' ro-crate-metadata.json`.
+
+| Code | Meaning |
+|------|---------|
+| `200` | Validated; the result has a `status` of `valid` or `invalid` |
+| `422` | `crate_json` is either missing, empty or invalid, or the validation could not run (an `error` result) |
+
+## Validate a stored RO-Crate
+
+`POST /v1/ro_crates/{crate_id}/validation`
+
+This queues validation of an RO-Crate held in the object store. The RO-Crate is resolved first, so a missing or ambiguous crate ID may be reported; the validation itself runs on a worker thread. 
+
+!!! note
+    See [Crate IDs](#crate-ids) for how `{crate_id}` maps to objects in the bucket.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `profile_name` | no | Profile to validate against; defaults to `ro-crate-1.1` when omitted |
+| `webhook_url` | no | URL that receives the result when validation finishes |
+
+```bash
+curl -X POST http://localhost:5001/v1/ro_crates/my-dataset-2026/validation -H 'Content-Type: application/json' -d '{"profile_name": "ro-crate-1.2"}'
+```
+
+| Code | Meaning |
+|------|---------|
+| `202` | Queued; the body is `{"message": "Validation in progress"}` |
+| `400` | Invalid Crate ID |
+| `404` | No RO-Crate at the expected keys, or storage mode is not enabled |
+| `409` | Both a zip and a directory exist for this Crate ID |
+| `422` | Request body invalid |
+| `503` | Object store unreachable |
+
+## Fetch a validation result
+
+`GET /v1/ro_crates/{crate_id}/validation`
+
+This returns the stored result for an RO-Crate.
+
+```bash
+curl http://localhost:5001/v1/ro_crates/my-dataset-2026/validation
+```
+
+| Code | Meaning |
+|------|---------|
+| `200` | The stored result, including persisted `error` results |
+| `400` | Invalid Crate ID |
+| `404` | No result stored for this Crate ID yet |
+
+## Validation results
+
+Every validation produces a result object:
+
+```json
 {
-  "minio_config": {
-    "endpoint": "string",   // required, e.g. "localhost:9000" or "minio:9000"
-    "accesskey": "string",  // required, MinIO access key or username
-    "secret": "string",     // required, MinIO secret key or password
-    "ssl": false,           // required, true when the MinIO endpoint uses HTTPS
-    "bucket": "string"      // required, bucket containing the RO-Crate
-  },
-  "root_path": "string",     // optional folder/path inside the bucket
-  "profile_name": "string"   // optional validation profile name
+  "status": "invalid",
+  "profile": "ro-crate-1.2",
+  "created_at": "2026-07-22T10:30:00+00:00",
+  "detail": {}
 }
 ```
 
-Expected responses:
+An RO-Crate's `status` can be:
 
-- `202`: validation queued.
-- `400`: RO-Crate does not exist or validation request cannot be satisfied.
-- `500`: internal service, MinIO, Celery, or validation error.
+| `status` | Meaning |
+|----------|---------|
+| `valid` | The RO-Crate conforms to the profile |
+| `invalid` | Validated, but with conformance issues listed in `detail` |
+| `error` | The validation could not run; the reason is in an `error` field instead of `detail` |
 
+!!! note
+    `detail` contains the complete validation report. `created_at` is the UTC time of the validation, and `profile` is the requested profile name, or `null` when the default (`ro-crate-1.1`) was used.
 
-### `GET /v1/ro_crates/{crate_id}/validation`
+For stored RO-Crates the same object is saved to `{S3_RESULTS_PREFIX}/<id>.json` and returned by the GET endpoint.
 
-Fetches the latest validation result from MinIO-compatible object storage.
+## Webhooks
 
-Request body:
+If `webhook_url` was given, the worker POSTs the result object to it as JSON once validation finishes. The result is saved to the store first and the webhook sent after, so a notification is never sent for a result that was not stored. 
 
-```jsonc
-{
-  "minio_config": {
-    "endpoint": "string",   // required, e.g. "localhost:9000" or "minio:9000"
-    "accesskey": "string",  // required, MinIO access key or username
-    "secret": "string",     // required, MinIO secret key or password
-    "ssl": false,           // required, true when the MinIO endpoint uses HTTPS
-    "bucket": "string"      // required, bucket containing the RO-Crate
-  },
-  "root_path": "string"     // optional folder/path inside the bucket
-}
-```
+Note that delivery is attempted three times, waiting `0.5s` then `1s` between attempts, with a `10s` timeout per attempt.
 
-Expected responses:
+## Crate IDs
 
-- `200`: validation result JSON returned.
-- `400`: RO-Crate or validation result is missing.
-- `500`: MinIO or internal retrieval error.
+A Crate ID is the label in the URL path that identifies an RO-Crate in the object store: the service looks for `{S3_CRATE_PREFIX}/<id>.zip` (zip) or `{S3_CRATE_PREFIX}/<id>/` (directory). Crate IDs must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`: they start with a letter or digit, may contain letters, digits, `.`, `_` and `-`, and are at most 128 characters long. Anything else is rejected with `400`.
 
+## Health
 
-### `POST /v1/ro_crates/validate_metadata`
-
-Validates a submitted RO-Crate metadata JSON string.
-
-Request body:
-
-```jsonc
-{
-  "crate_json": "string",   // required, stringified content of ro-crate-metadata.json
-  "profile_name": "string"  // optional validation profile name
-}
-```
-
-Expected responses:
-
-- `200`: validation result returned.
-- `422`: missing, malformed, or empty metadata JSON.
-- `500`: internal validation error.
-
-
-## Validation Profiles
-
-The optional `profile_name` field selects a specific RO-Crate validation 
-profile. If omitted, the service uses the validator default.
-
-Custom profile definitions can be made available to the service through the 
-`PROFILES_PATH` environment variable.
-
-
-## Result Storage
-
-Validation results for stored RO-Crates are saved back to MinIO-compatible 
-object storage.
-
-Without `root_path`, results are stored at:
-
-```text
-{crate_id}_validation/validation_status.txt
-```
-
-With `root_path`, results are stored at:
-
-```text
-{root_path}/{crate_id}_validation/validation_status.txt
-```
-
+`GET /healthz` reports that the process is up, and always returns `200 {"status": "ok"}`. `GET /readyz` checks the object store and Celery broker, returning `200` when ready and `503` otherwise, with the individual checks in the body. When storage is off, both checks report `disabled`.

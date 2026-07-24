@@ -28,14 +28,14 @@ You do not need to change object store as MinIO is S3-compatible. Set `S3_ENDPOI
 
 ## API changes
 
-The service connects to the object store defined in the server-side configuration. Requests carry only the crate ID and validation options. The body of `POST /v1/ro_crates/{crate_id}/validation` contains the optional `profile_name` and `webhook_url`. `GET /v1/ro_crates/{crate_id}/validation` takes no body. 
+The service connects to the object store defined in the server-side configuration. Requests carry only the Crate ID and validation options. The body of `POST /v1/ro_crates/{crate_id}/validation` contains the optional `profile_name` and `webhook_url`. `GET /v1/ro_crates/{crate_id}/validation` takes no body. 
 
 !!! warning
     Ensure that you update any existing request bodies before sending requests to the new RO-Crate Validation Service API. Incorrect request bodies will receive `422` validation errors.
 
 ### Crate IDs
 
-A crate ID is the short label that addresses an RO-Crate in the API path, for example `my-dataset-2026` in `POST /v1/ro_crates/my-dataset-2026/validation`. It is chosen by whoever uploads the RO-Crate, and the service composes the object keys from it: `{S3_CRATE_PREFIX}/<id>.zip` for a zipped RO-Crate, or `{S3_CRATE_PREFIX}/<id>/` for a directory. The ID itself is not a filename, path or URL.
+A Crate ID is the short label that addresses an RO-Crate in the API path, for example `my-dataset-2026` in `POST /v1/ro_crates/my-dataset-2026/validation`. It is chosen by whoever uploads the RO-Crate, and the service composes the object keys from it: `{S3_CRATE_PREFIX}/<id>.zip` for a zipped RO-Crate, or `{S3_CRATE_PREFIX}/<id>/` for a directory. The Crate ID itself is not a filename, path or URL.
 
 Crate IDs are now validated strictly: they must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. This does not allow slashes or path segments. Paths inside the bucket are handled by the prefix settings.
 
@@ -45,8 +45,8 @@ Response codes are more specific than the 1.\* `400`/`500` pattern:
 |-----------|------|-----|
 | Crate not found in the store | `400` | `404` |
 | No validation result stored yet | `400` | `404` |
-| Invalid crate ID | — | `400` |
-| Both zip and directory exist for one ID | — | `409` |
+| Invalid Crate ID | — | `400` |
+| Both zip and directory exist for one Crate ID | — | `409` |
 | Request body invalid (e.g., contains removed 1.\* fields) | — | `422` |
 | Object store unreachable | `500` | `503` |
 
