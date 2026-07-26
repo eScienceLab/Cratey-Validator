@@ -1,0 +1,18 @@
+model {
+  extend ro-crate_service {
+    ro-crate_service = service {
+      title 'RO-Crate Service'
+      description 'Service for submitting work via RO-Crates'
+    
+    -> tre 'Submits tasks via'
+    -> ro-crate_validator.validator_api 'Validates RO-Crates via'
+    }
+}
+}
+
+views {
+  view ro-crate_service of ro-crate_service {
+    title 'RO-Crate Service'
+    include *
+  }
+}

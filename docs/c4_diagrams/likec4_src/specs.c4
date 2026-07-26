@@ -1,0 +1,50 @@
+specification {
+  element external_actor {
+    style {
+      shape person
+      color red
+    }
+  }
+  element internal_actor {
+    style {
+      shape person
+      color green
+    }
+  }
+
+  color orange rgba(255, 153, 0, 100%)
+  element database {
+    style {
+      shape storage
+      color orange
+      multiple true
+    }
+  }
+
+  color system-colour rgba(35, 67, 99, 100%)
+  element system {
+    style {
+      color system-colour
+    }
+  }
+
+  color service-colour rgba(0, 100, 150, 100%)
+  element service {
+    style {
+      color service-colour
+    }
+  }
+
+  color component-colour rgba(0, 0, 0, 100%)
+  element component {
+    style {
+      color component-colour
+    }
+  }
+
+  deploymentNode environment
+
+  deploymentNode vm {
+    notation 'Virtual Machine'
+  }
+}
