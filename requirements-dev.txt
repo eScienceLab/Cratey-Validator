@@ -57,7 +57,7 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-colorlog==6.10.1
+colorlog==6.12.0
     # via roc-validator
 cryptography==49.0.0
     # via moto

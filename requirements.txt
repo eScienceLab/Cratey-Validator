@@ -49,7 +49,7 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-colorlog==6.9.0
+colorlog==6.12.0
     # via roc-validator
 dnspython==2.8.0
     # via email-validator
