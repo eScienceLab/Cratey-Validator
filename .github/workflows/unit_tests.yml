@@ -6,7 +6,13 @@ on:
     paths:
       - app/**
       - tests/**
-  
+      - requirements*.txt
+      - pyproject.toml
+      - Dockerfile
+      - docker-compose*.yml
+      - .dockerignore
+      - example.env
+      - wsgi.py
 
 jobs:
   test:
