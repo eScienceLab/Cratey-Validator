@@ -12,7 +12,7 @@ To start, clone the repository, copy the example environment file, and start the
 git clone https://github.com/eScienceLab/RO-Crate-Validation-Service.git
 cd RO-Crate-Validation-Service
 cp example.env .env
-docker compose up --build
+docker compose up
 ```
 
 !!! warning
@@ -49,7 +49,7 @@ The service will fail at startup if any are missing. The Compose stack already s
 Then start the stack with the bundled development object store (RustFS), run:
 
 ```bash
-docker compose --profile objectstore up --build
+docker compose --profile objectstore up
 ```
 
 RustFS serves the S3 API on port 9000 and a web console at `http://localhost:9001`. Development credentials are set in `example.env`. 
@@ -99,7 +99,7 @@ The validator comes with several RO-Crate profiles, and for the Five Safes RO-Cr
 To add other profiles, mount a directory into both the `flask` and `celery_worker` containers, and set `EXTRA_PROFILES_PATH` to the mounted path. Note that both containers need the mount as metadata-only validation runs in the API process and stored-crate validation runs in the worker. There is a working example in `docker-compose-develop.yml`. 
 
 !!! note
-    `EXTRA_PROFILES_PATH` adds the directory to the bundled profiles, whereas `PROFILES_PATH` replaces them entirely.
+    `EXTRA_PROFILES_PATH` adds the directory to the bundled profiles, whereas `PROFILES_PATH` replaces them entirely. The two can be set together, in which case the validator takes profiles from both locations.
 
 ## Offline validation
 

@@ -20,7 +20,7 @@ The old `MINIO_*` variables are replaced by equivalent `S3_*` variables, and sto
 | — | `S3_CRATE_PREFIX`, `S3_RESULTS_PREFIX` (new; default `crates` and `validation-results`) |
 | `FLASK_APP=cratey.py` | `FLASK_APP=wsgi.py` |
 
-The published image is now `ghcr.io/esciencelab/ro-crate-validation-service` (with a `-fivesafes-profile` variant that has the Five Safes profile included). The [configuration reference](installation.md#configuration-reference) lists all the settings.
+The published image is also renamed: `ghcr.io/esciencelab/cratey-validator` is now `ghcr.io/esciencelab/ro-crate-validation-service` (with a `-fivesafes-profile` variant that has the Five Safes profile included). The [configuration reference](installation.md#configuration-reference) lists all the settings.
 
 ## Keeping your existing MinIO
 
