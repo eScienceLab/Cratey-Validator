@@ -3,6 +3,9 @@ name: Lint
 on:
   pull_request:
     branches: [ develop ]
+    paths:
+      - app/**
+      - tests/**
 
 jobs:
   ruff:
