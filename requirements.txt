@@ -104,7 +104,7 @@ mdurl==0.1.2
     # via markdown-it-py
 owlrl==7.1.4
     # via pyshacl
-packaging==25.0
+packaging==26.2
     # via
     #   apispec
     #   kombu
