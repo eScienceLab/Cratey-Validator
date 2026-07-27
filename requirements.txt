@@ -122,7 +122,7 @@ prompt-toolkit==3.0.51
     #   inquirerpy
 pydantic[email]==2.12.4
     # via apiflask
-pydantic-core==2.41.5
+pydantic-core==2.47.0
     # via pydantic
 pygments==2.20.0
     # via
