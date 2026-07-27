@@ -1,4 +1,5 @@
 site_name: RO-Crate Validation Service
+site_url: https://esciencelab.org.uk/RO-Crate-Validation-Service/
 nav:
   - Home: index.md
   - Installation: installation.md
