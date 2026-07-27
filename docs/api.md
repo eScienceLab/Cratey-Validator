@@ -36,7 +36,7 @@ To choose a profile, add it to the `jq` object: `jq -Rs '{crate_json: ., profile
 
 `POST /v1/ro_crates/{crate_id}/validation`
 
-This queues validation of an RO-Crate held in the object store. The RO-Crate is resolved first, so a missing or ambiguous crate ID may be reported; the validation itself runs on a worker thread. 
+This queues validation of an RO-Crate held in the object store. The RO-Crate is resolved first, so a missing or ambiguous crate ID may be reported; the validation itself runs on a worker. 
 
 !!! note
     See [Crate IDs](#crate-ids) for how `{crate_id}` maps to objects in the bucket.
@@ -97,7 +97,7 @@ An RO-Crate's `status` can be:
 | `error` | The validation could not run; the reason is in an `error` field instead of `detail` |
 
 !!! note
-    `detail` contains the complete validation report. `created_at` is the UTC time of the validation, and `profile` is the requested profile name, or `null` when the default (`ro-crate-1.1`) was used.
+    `detail` contains the complete validation report. `created_at` is the UTC time of a stored-crate validation, and `null` for metadata-only validation, which does not set it. `profile` is the requested profile name, or `null` when the default (`ro-crate-1.1`) was used.
 
 For stored RO-Crates the same object is saved to `{S3_RESULTS_PREFIX}/<id>.json` and returned by the GET endpoint.
 
