@@ -33,7 +33,7 @@ Here `--build` matters: without it, Compose reuses the previously built image an
 
 ## Tests
 
-Install the development dependencies, then run the unit tests, which need no Docker:
+Install the development dependencies, then run the unit tests, which do not use Docker Engine:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -43,7 +43,7 @@ pip install -r requirements-dev.txt
 pytest --ignore=tests/test_integration.py
 ```
 
-The integration tests bring up the full Compose stack (including the object store) and seed crates with `boto3`, so they need Docker running:
+The integration tests bring up the full Compose stack (including the object store) and seed crates with `boto3`, for which they need Docker Engine to be running:
 
 ```bash
 pytest tests/test_integration.py
@@ -61,7 +61,7 @@ ruff check . && ruff format --check .
 
 ## Dependencies
 
-Direct dependencies are declared in `pyproject.toml`; the `requirements*.txt` files are locks generated with pip-compile:
+Direct dependencies are declared in `pyproject.toml`; while the `requirements*.txt` files are locks generated using `pip-compile`:
 
 ```bash
 pip-compile pyproject.toml -o requirements.txt
@@ -73,11 +73,11 @@ pip-compile --extra dev pyproject.toml -o requirements-dev.txt
 
 ## Continuous Integration
 
-Pull requests to `develop` run three workflows: unit tests, integration tests (which start the Compose stack), and lint (`ruff check` and `ruff format --check`).
+Pull requests to `develop` will trigger three workflows: unit tests, integration tests (which start the Compose stack), and lint (`ruff check` and `ruff format --check`).
 
 ## How the API works
 
-The API process handles HTTP and runs metadata-only validation inline. Object storage-backed validation is queued through Redis to a Celery worker, which reads the crate from the S3-compatible store, validates it, and writes the result back:
+The API server handles HTTP and runs metadata-only validation inline. Object storage-backed validation is queued through Redis to a Celery worker, which reads the crate from the S3-compatible store, validates it, and writes the result back:
 
 ```mermaid
 flowchart LR

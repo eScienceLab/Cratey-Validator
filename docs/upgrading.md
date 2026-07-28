@@ -9,7 +9,7 @@ The RO-Crate Validation Service 2.0 release replaced the MinIO-specific storage 
 
 The old `MINIO_*` variables are replaced by equivalent `S3_*` variables, and storage is now switched on explicitly:
 
-| 1.\* | Now |
+| 1.\* | 2.\* |
 |------|-----|
 | `MINIO_ENDPOINT` | `S3_ENDPOINT` |
 | `MINIO_ROOT_USER` | `S3_ACCESS_KEY` |
@@ -35,13 +35,13 @@ The service connects to the object store defined in the server-side configuratio
 
 ### Crate IDs
 
-A Crate ID is the short label that addresses an RO-Crate in the API path, for example `my-dataset-2026` in `POST /v1/ro_crates/my-dataset-2026/validation`. It is chosen by whoever uploads the RO-Crate, and the service composes the object keys from it: `{S3_CRATE_PREFIX}/<id>.zip` for a zipped RO-Crate, or `{S3_CRATE_PREFIX}/<id>/` for a directory. The Crate ID itself is not a filename, path or URL.
+A Crate ID is the label that addresses an RO-Crate in the API path, for example `my-dataset-2026` in `POST /v1/ro_crates/my-dataset-2026/validation`. It is chosen by whoever uploads the RO-Crate, and the service composes the object keys from it: `{S3_CRATE_PREFIX}/<id>.zip` for a zipped RO-Crate, or `{S3_CRATE_PREFIX}/<id>/` for a directory. The Crate ID itself is not a filename, path or URL.
 
 Crate IDs are now validated strictly: they must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. This does not allow slashes or path segments. Paths inside the bucket are handled by the prefix settings.
 
 Response codes are more specific than the 1.\* `400`/`500` pattern:
 
-| Situation | 1.\* | Now |
+| Situation | 1.\* | 2.\* |
 |-----------|------|-----|
 | Crate not found in the store | `400` | `404` |
 | No validation result stored yet | `400` | `404` |

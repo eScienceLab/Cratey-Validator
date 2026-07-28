@@ -6,7 +6,7 @@ The RO-Crate Validation Service works in two ways: a metadata-only mode, in whic
 
 You will need Docker with Docker Compose. 
 
-To start, clone the repository, copy the example environment file, and start the stack:
+To start, clone the repository, copy the example environment file (`example.env`), and start the stack:
 
 ```bash
 git clone https://github.com/eScienceLab/RO-Crate-Validation-Service.git
@@ -28,38 +28,38 @@ curl http://localhost:5001/healthz
 
 This returns `{"status": "ok"}`.
 
-To validate the contents of an `ro-crate-metadata.json` file, post to the metadata endpoint. The [running example](https://www.researchobject.org/ro-crate/specification/1.2/introduction.html#running-example) from the RO-Crate specification is a good test document. 
+To validate the contents of an `ro-crate-metadata.json` file, post to the metadata endpoint. The [running example](https://www.researchobject.org/ro-crate/specification/1.2/introduction.html#running-example) from the RO-Crate specification is a good test document. Create an `ro-crate-metadata.json` file and copy the text from the link above into this, for use in the example below.
 
-The file needs to be sent as an escaped JSON string, which `jq` can do:
+The file contents need to be sent to the API as an escaped JSON string, identified using the `crate_json` tag, within a JSON object. The command-line JSON processor, [`jq`](https://jqlang.org/) can be used to do this, as shown below.
 
 ```bash
 jq -Rs '{crate_json: .}' ro-crate-metadata.json | curl -X POST http://localhost:5001/v1/ro_crates/validate_metadata -H 'Content-Type: application/json' -d @-
 ```
 
-The response contains a `status` of `valid`, `invalid` or `error`, along with the detailed validation. For more information, the [API reference](api.md) describes the endpoints and result format in full.
+The returned response will contain a `status` of `valid`, `invalid` or `error`, along with the detailed validation. For more information, the [API reference](api.md) describes the endpoints and result format in full.
 
 ## Enabling object storage
 
-To validate a complete RO-Crate (zip or directory) held in an object store, set `STORAGE_ENABLED=true` in `.env`. 
+To enable the validation of complete RO-Crates (zip or directory) that are held in an object store, set `STORAGE_ENABLED=true` in `.env`. 
 
-The storage-backed validation mode requires six settings, [described below](#configuration-reference): `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`. 
+The storage-backed validation mode requires six environmental variables to be set in the `.env` file, [described below](#configuration-reference): `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND`. The service will fail at startup if any are missing.
 
-The service will fail at startup if any are missing. The Compose stack already sets the Celery variables to the bundled Redis, so in practice only the S3 settings in `.env` matter here.
+The `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are already configured to the bundled Redis service within the docker compose stack, so the values for these within the `example.env` file can be left as they are. For any purpose other than an initial demonstration of the service the S3 settings given in the `example.env` file, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_BUCKET`, should be changed for both security reasons and to match your own local setup.
 
-Then start the stack with the bundled development object store (RustFS), run:
+To start the stack with the bundled development object store (RustFS), run:
 
 ```bash
 docker compose --profile objectstore up
 ```
 
-RustFS serves the S3 API on port 9000 and a web console at `http://localhost:9001`. Development credentials are set in `example.env`. 
+RustFS serves the S3 API on port 9000 and a web console at `http://localhost:9001`.
 
 !!! warning
-    The service does not create the bucket itself. Create the bucket in the console or with an S3 client. The bucket name needs to match `S3_BUCKET` (`ro-crates` by default). 
+    The service does not create the bucket itself. Create the bucket in the console or with an S3 client. The bucket name needs to match the value in the `S3_BUCKET` environmental variable (`ro-crates` by default). 
 
-Upload an RO-Crate under the prefix: `crates/<id>.zip` for a zipped RO-Crate, or `crates/<id>/` for a directory. Note that for a zipped RO-Crate, `ro-crate-metadata.json` must be at the root of the archive.
+Upload an RO-Crate to this S3 bucket, using the prefix `crates`. This should give the uploaded RO-Crate a path of either `crates/<id>.zip` for a zipped RO-Crate, or `crates/<id>/` for a directory. Note that for a zipped RO-Crate, `ro-crate-metadata.json` must be at the root of the archive.
 
-The readiness endpoint checks the object store and broker connections:
+The readiness endpoint can be used to check the object store and broker connections:
 
 ```bash
 curl http://localhost:5001/readyz
@@ -67,11 +67,17 @@ curl http://localhost:5001/readyz
 
 ## Using your own object store
 
-Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO and Ceph: set `S3_ENDPOINT`, the credentials and `S3_BUCKET` for your store. In this case, do not run the `objectstore` profile. 
+Any S3-compatible store can be used in place of RustFS, including AWS S3, MinIO and Ceph. To do this set the `S3_ENDPOINT` and `S3_BUCKET` environment variables to match the location of your store, and provide your store credentials in the `S3_ACCESS_KEY` and `S3_SECRET_KEY` environment variables. Make sure that the `STORAGE_ENABLED` environment variable is still set to `true`, but do not include the `objectstore` profile flag in your docker compose command:
+
+```bash
+docker compose up
+```
 
 If you already use a 1.x release against MinIO, the [upgrade guide](upgrading.md) maps the old settings to the new ones.
 
 ## Configuration reference
+
+The following can all be set as environment variables for the service using an `.env` file.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -80,14 +86,14 @@ If you already use a 1.x release against MinIO, the [upgrade guide](upgrading.md
 | `S3_ACCESS_KEY` | — | Object store access key (required in storage mode) |
 | `S3_SECRET_KEY` | — | Object store secret key (required in storage mode) |
 | `S3_BUCKET` | — | Bucket holding RO-Crates and results (required in storage mode) |
-| `S3_USE_SSL` | `false` | Use HTTPS to the object store |
-| `S3_REGION` | — | Region; needed for AWS S3 |
-| `S3_CRATE_PREFIX` | `crates` | Key prefix RO-Crates are read from |
-| `S3_RESULTS_PREFIX` | `validation-results` | Key prefix results are written to |
+| `S3_USE_SSL` | `false` | Use HTTPS for connecting to the object store |
+| `S3_REGION` | — | Region; needed when using AWS S3 object stores |
+| `S3_CRATE_PREFIX` | `crates` | Prefix key from which RO-Crates are read |
+| `S3_RESULTS_PREFIX` | `validation-results` | Prefix key to which results are written |
 | `CELERY_BROKER_URL` | — | Redis broker URL (required in storage mode; preset in the Compose stack) |
 | `CELERY_RESULT_BACKEND` | — | Celery result backend URL (required in storage mode; preset in the Compose stack) |
-| `PROFILES_PATH` | — | Profiles directory that replaces the bundled profiles |
-| `EXTRA_PROFILES_PATH` | — | Profiles directory added to the bundled profiles |
+| `PROFILES_PATH` | — | Profiles directory for replacing the bundled profiles |
+| `EXTRA_PROFILES_PATH` | — | Profiles directory for adding extra profiles |
 | `CACHE_PATH` | `/app/.rocrate-cache` | Validator HTTP cache location |
 | `VALIDATION_OFFLINE` | `false` | Validate using only the cache, with no network access |
 | `FLASK_ENV` | `development` | Set to `production` to disable debug behaviour |
@@ -96,13 +102,13 @@ If you already use a 1.x release against MinIO, the [upgrade guide](upgrading.md
 
 The validator comes with several RO-Crate profiles, and for the Five Safes RO-Crate, the prebuilt `ghcr.io/esciencelab/ro-crate-validation-service-fivesafes-profile` image has the `five-safes-crate` profile already included; see [Five Safes validation](five-safes.md).
 
-To add other profiles, mount a directory into both the `flask` and `celery_worker` containers, and set `EXTRA_PROFILES_PATH` to the mounted path. Note that both containers need the mount as metadata-only validation runs in the API process and stored-crate validation runs in the worker. There is a working example in `docker-compose-develop.yml`. 
+Other profiles can be provided by mounting the directory containing these profiles as a volume for the `flask` container. Mount the same directory as a volume for the `celery_worker` container as well if you have enabled stored-crate validation. Then set either the `EXTRA_PROFILES_PATH` or `PROFILES_PATH` environment variable to match the volume path. There is a working example in `docker-compose-develop.yml`.
 
 !!! note
     `EXTRA_PROFILES_PATH` adds the directory to the bundled profiles, whereas `PROFILES_PATH` replaces them entirely. The two can be set together, in which case the validator takes profiles from both locations.
 
 ## Offline validation
 
-The validator fetches profile and context resources over HTTP and caches them. The published images pre-populate this cache at build time, so setting `VALIDATION_OFFLINE=true` runs validation entirely from the cache, with no network access at runtime. This is useful inside TREs and other restricted networks. 
+The validator fetches profile and context resources over HTTP and caches them. The published v2.* images pre-populate this cache at build time, so setting `VALIDATION_OFFLINE=true` runs validation entirely from the cache, with no network access at runtime. This is useful inside TREs and other networks with restricted internet access. 
 
-Online validation (the default) also uses and refreshes the same cache. Offline validation requires `rocrate-validator` at 0.10.0 or later, which the published images include.
+Online validation (the default) also uses and refreshes the same cache. Offline validation requires `rocrate-validator` at 0.10.0 or later, which the published v2.* ro-crate validation service images include.
