@@ -1,0 +1,45 @@
+model {
+  // ---------------------------------------------------------------------------
+  // Actors
+
+  researcher = external_actor {
+    title 'Researcher'
+    description 'Researcher who wishes to perform analyses on protected data'
+
+    -> ro-crate_service.ro-crate_service 'Submits tasks via'
+    -> tre.tre_app 'Submits tasks via'
+  }
+
+  // ----------------------------------------------------------------------------
+  // Systems
+
+  ro-crate_validator = system {
+    title 'RO-Crate Validator'
+    description 'System for validating RO-Crates'
+    technology '[Docker Compose stack]'
+  }
+
+  tre = system {
+    title 'TRE Stack'
+    description 'TRE stack'
+  }
+
+  // ----------------------------------------------------------------------------
+  // External Systems
+
+  ro-crate_service = system {
+    title 'RO-Crate Service'
+    description 'Service for submitting RO-Crate packaged work'
+    technology '[Python package]'
+  }
+
+}
+
+views {
+  view index {
+    title 'RO-Crate Validation Service - Context'
+    description 'Top level diagram'
+    include *
+    exclude ro-crate_service
+  }
+}

@@ -11,5 +11,6 @@ theme: readthedocs
 plugins:
   - search
   - mermaid2
+  - likec4
 markdown_extensions:
   - admonition

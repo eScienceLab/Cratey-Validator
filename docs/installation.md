@@ -1,5 +1,10 @@
 # Installation & Setup
 
+```likec4-view
+ro-crate_service
+```
+
+## Service Snapshot
 The RO-Crate Validation Service works in two ways: a metadata-only mode, in which the contents of an `ro-crate-metadata.json` file are assessed, and storage-backed validation, where complete RO-Crates (zip or directory) are evaluated. 
 
 ## Quick start

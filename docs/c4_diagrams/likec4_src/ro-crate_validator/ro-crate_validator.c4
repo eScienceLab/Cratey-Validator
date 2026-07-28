@@ -1,0 +1,34 @@
+model {
+  extend ro-crate_validator {
+    validator_api = service {
+      title 'RO-Crate Validator API'
+      description 'API for validating RO-Crates'
+
+      -> redis 'Submits validation tasks to'
+    }
+
+    celery_worker = component {
+      title 'Celery Worker'
+      description 'Processes validation tasks'
+      icon https://github.com/celery/celery/blob/main/docs/images/celery_128.png?raw=true
+
+      -> redis 'Receives validation tasks from'
+      -> tre.minio 'Fetches RO-Crate data from'
+      -> tre.minio 'Stores validation results in'
+      -> validator_api 'Sends validation results to'
+    }
+    
+    redis = component {
+      title 'Redis'
+      description 'In-memory data structure store'
+      icon tech:redis
+    }
+  }
+}
+
+views {
+  view ro-crate_validator of ro-crate_validator {
+    title 'RO-Crate Validator Service'
+    include *
+  }
+}
