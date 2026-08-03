@@ -137,7 +137,7 @@ pluggy==1.6.0
     # via pytest
 prettytable==3.17.0
     # via pyshacl
-prompt-toolkit==3.0.52
+prompt-toolkit==3.0.53
     # via
     #   click-repl
     #   inquirerpy
