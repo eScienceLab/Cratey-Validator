@@ -37,7 +37,7 @@ celery==5.6.3
     # via ro-crate-validation-service (pyproject.toml)
 certifi==2026.6.17
     # via requests
-cffi==2.0.0
+cffi==2.1.0
     # via cryptography
 charset-normalizer==3.4.7
     # via requests
@@ -57,9 +57,9 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-colorlog==6.10.1
+colorlog==6.12.0
     # via roc-validator
-cryptography==49.0.0
+cryptography==50.0.0
     # via moto
 dnspython==2.8.0
     # via email-validator
@@ -129,7 +129,7 @@ packaging==26.2
     #   wheel
 pfzy==0.3.4
     # via inquirerpy
-pip-tools==7.5.3
+pip-tools==7.6.1
     # via ro-crate-validation-service (pyproject.toml)
 platformdirs==4.10.0
     # via requests-cache
@@ -137,7 +137,7 @@ pluggy==1.6.0
     # via pytest
 prettytable==3.17.0
     # via pyshacl
-prompt-toolkit==3.0.52
+prompt-toolkit==3.0.53
     # via
     #   click-repl
     #   inquirerpy
@@ -194,7 +194,7 @@ requests==2.34.2
     #   roc-validator
 requests-cache==1.3.3
     # via roc-validator
-responses==0.26.1
+responses==0.26.2
     # via moto
 rich==13.9.4
     # via
