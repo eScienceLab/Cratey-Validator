@@ -129,7 +129,7 @@ packaging==26.2
     #   wheel
 pfzy==0.3.4
     # via inquirerpy
-pip-tools==7.5.3
+pip-tools==7.6.1
     # via ro-crate-validation-service (pyproject.toml)
 platformdirs==4.10.0
     # via requests-cache
