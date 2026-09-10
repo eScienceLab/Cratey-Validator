@@ -37,7 +37,7 @@ celery==5.6.3
     # via ro-crate-validation-service (pyproject.toml)
 certifi==2026.6.17
     # via requests
-cffi==2.0.0
+cffi==2.1.0
     # via cryptography
 charset-normalizer==3.4.7
     # via requests
