@@ -16,7 +16,7 @@ attrs==25.3.0
     # via
     #   cattrs
     #   requests-cache
-billiard==4.2.1
+billiard==4.2.4
     # via celery
 blinker==1.9.0
     # via flask
